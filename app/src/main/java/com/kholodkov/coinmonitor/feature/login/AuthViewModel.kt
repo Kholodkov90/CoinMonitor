@@ -3,7 +3,7 @@ package com.kholodkov.coinmonitor.feature.login
 import androidx.credentials.GetCredentialResponse
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kholodkov.coinmonitor.domain.usecase.SignInUseCase
+import com.kholodkov.coinmonitor.domain.usecase.auth.SignInUseCase
 import com.kholodkov.coinmonitor.feature.login.state.AuthUiEvent
 import com.kholodkov.coinmonitor.feature.login.state.AuthUiIntent
 import com.kholodkov.coinmonitor.feature.login.state.AuthUiState

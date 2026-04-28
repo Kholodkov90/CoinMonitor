@@ -5,7 +5,6 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Upsert
-import com.kholodkov.coinmonitor.data.local.db.entity.summary.CurrencySumEntity
 import com.kholodkov.coinmonitor.data.local.db.entity.transaction.FullTransactionEntity
 import com.kholodkov.coinmonitor.data.local.db.entity.transaction.TransactionEntity
 import com.kholodkov.coinmonitor.data.local.db.entity.transaction.TransactionSyncEntity
@@ -27,6 +26,16 @@ interface TransactionDao {
 
     @Query(
         """
+            SELECT trn_id
+            FROM `transaction` 
+            WHERE trn_uid = :uid
+            LIMIT 1
+        """
+    )
+    suspend fun getIdByUid(uid: String): Long?
+
+    @Query(
+        """
             SELECT 
                 trn_uid AS uid,
                 day_date AS date,
@@ -43,41 +52,52 @@ interface TransactionDao {
             ORDER BY trn_time
         """
     )
-    fun observeTransactionsByDate(
+    fun observeByDate(
         date: LocalDate
     ): Flow<List<FullTransactionEntity>>
 
     @Query(
         """
             SELECT 
+                trn_uid AS uid,
+                day_date AS date,
+                usr_uid AS userUid,
+                trn_amount AS amount,
+                trn_time AS time,
                 trn_currency AS currency, 
-                SUM(trn_amount) AS amount
+                usr_display_name AS userName,
+                trn_updated_at as updatedAt
             FROM `transaction` 
                 INNER JOIN day ON trn_day_id = day_id
-            WHERE day_date < :date
-            GROUP BY trn_currency
+                INNER JOIN user ON trn_user_id = usr_id
+            WHERE day_date <= :date
         """
     )
-    fun observeSpendsBefore(
+    fun observeUpToDate(
         date: LocalDate
-    ): Flow<List<CurrencySumEntity>>
+    ): Flow<List<FullTransactionEntity>>
+
 
     @Query(
         """
             SELECT 
+                trn_uid AS uid,
+                day_date AS date,
+                usr_uid AS userUid,
+                trn_amount AS amount,
+                trn_time AS time,
                 trn_currency AS currency, 
-                SUM(trn_amount) AS amount
+                usr_display_name AS userName,
+                trn_updated_at as updatedAt
             FROM `transaction` 
                 INNER JOIN day ON trn_day_id = day_id
-            WHERE day_date = :date
-            GROUP BY trn_currency
+                INNER JOIN user ON trn_user_id = usr_id
         """
     )
-    fun observeSpendsByDate(
-        date: LocalDate
-    ): Flow<List<CurrencySumEntity>>
+    fun observeAll(): Flow<List<FullTransactionEntity>>
 
-    @Query("""
+    @Query(
+        """
             SELECT 
                 trn_uid as uid,
                 trn_amount as amount,
@@ -90,7 +110,8 @@ interface TransactionDao {
                 INNER JOIN day ON trn_day_id = day_id
                 INNER JOIN user ON trn_user_id = usr_id
             WHERE trn_uid = :uid
-        """)
+        """
+    )
     suspend fun getSyncEntity(uid: String): TransactionSyncEntity?
 
     @Insert(onConflict = OnConflictStrategy.ABORT)

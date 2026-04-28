@@ -6,7 +6,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import com.kholodkov.coinmonitor.core.navigation.Route
 import com.kholodkov.coinmonitor.feature.main.screen.MainScreenRoute
-import com.kholodkov.coinmonitor.feature.purchase.PurchaseScreenRoute
+import com.kholodkov.coinmonitor.feature.purchase.screen.PurchaseScreenRoute
 import com.kholodkov.coinmonitor.feature.settings.ui.screen.SettingsScreenRoute
 import com.kholodkov.coinmonitor.feature.statistic.StatisticScreenRoute
 

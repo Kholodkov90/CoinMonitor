@@ -11,11 +11,11 @@ A family application for tracking expenses with offline support and syncing via 
 - Available balance calculation based on custom formula
 - Shared family access via Firebase Auth
 - Swipe to delete with undo for transactions
-
-### Planned
-- Automatic exchange rate updates via Frankfurter API *(loaded, conversion coming soon)*
+- Automatic exchange rate updates via Frankfurter API
 - Planned purchases (large expense scheduling)
 - Swipe to delete with undo for planned purchases
+
+### Planned
 - Weekly / monthly statistics
 - Russian and English language support
 - Multi-module architecture

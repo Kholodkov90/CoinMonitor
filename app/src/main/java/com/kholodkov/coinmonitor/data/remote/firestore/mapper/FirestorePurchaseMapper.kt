@@ -1,27 +1,28 @@
 package com.kholodkov.coinmonitor.data.remote.firestore.mapper
 
 import com.kholodkov.coinmonitor.data.model.purchase.RemotePurchase
-import com.kholodkov.coinmonitor.data.remote.firestore.formatForFirestore
 import com.kholodkov.coinmonitor.data.remote.firestore.model.FirestorePurchase
-import com.kholodkov.coinmonitor.data.remote.firestore.parseFirestoreDate
-import com.kholodkov.coinmonitor.domain.model.Currency
+import com.kholodkov.coinmonitor.data.remote.firestore.tools.formatForFirestore
+import com.kholodkov.coinmonitor.data.remote.firestore.tools.parseFirestoreDate
+import com.kholodkov.coinmonitor.domain.model.currency.Currency
 import java.math.BigDecimal
 
-fun FirestorePurchase.toRemote() = RemotePurchase(
+fun FirestorePurchase.toRemote(uid: String) = RemotePurchase(
     uid = uid,
     date = date.parseFirestoreDate(),
     userUid = userUid,
     amount = BigDecimal(amount),
+    transactionUid = transactionUid,
     currency = Currency.valueOf(currency),
     description = description,
     updatedAt = updatedAt
 )
 
 fun RemotePurchase.toFirestore() = FirestorePurchase(
-    uid = uid,
-    date = date.formatForFirestore(),
     userUid = userUid,
+    date = date.formatForFirestore(),
     amount = amount.toPlainString(),
+    transactionUid = transactionUid,
     currency = currency.name,
     description = description,
     updatedAt = updatedAt

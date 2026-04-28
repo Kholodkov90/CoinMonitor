@@ -6,7 +6,7 @@ import com.kholodkov.coinmonitor.data.local.db.entity.transaction.TransactionSyn
 import com.kholodkov.coinmonitor.data.model.transaction.NewTransaction
 import com.kholodkov.coinmonitor.data.model.transaction.RemoteTransaction
 import com.kholodkov.coinmonitor.data.model.transaction.ResolvedTransaction
-import com.kholodkov.coinmonitor.domain.model.Transaction
+import com.kholodkov.coinmonitor.domain.model.transaction.Transaction
 import java.time.Instant
 
 fun ResolvedTransaction.toEntity() = TransactionEntity(
@@ -48,7 +48,7 @@ fun NewTransaction.toEntity() = TransactionEntity(
     amount = amount,
     currency = currency,
     time = time,
-    updatedAt = Instant.now()
+    updatedAt = updatedAt
 )
 
 fun List<FullTransactionEntity>.toDomainList() = map { it.toDomain() }

@@ -1,6 +1,6 @@
 package com.kholodkov.coinmonitor.data.datasource.user
 
-import com.kholodkov.coinmonitor.domain.model.User
+import com.kholodkov.coinmonitor.domain.model.user.User
 import javax.inject.Inject
 
 class UserDataSource @Inject constructor(

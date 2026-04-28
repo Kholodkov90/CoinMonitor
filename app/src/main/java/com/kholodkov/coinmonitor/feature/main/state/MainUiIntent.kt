@@ -1,7 +1,7 @@
 package com.kholodkov.coinmonitor.feature.main.state
 
-import com.kholodkov.coinmonitor.domain.model.Currency
-import com.kholodkov.coinmonitor.domain.model.RestoreTransactionParams
+import com.kholodkov.coinmonitor.domain.model.currency.Currency
+import com.kholodkov.coinmonitor.domain.model.transaction.RestoreTransactionParams
 import java.time.LocalDate
 import java.time.LocalTime
 

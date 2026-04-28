@@ -2,19 +2,21 @@ package com.kholodkov.coinmonitor.data.repository
 
 import com.google.gson.Gson
 import com.kholodkov.coinmonitor.data.datasource.day.DayDataSource
+import com.kholodkov.coinmonitor.data.datasource.exchange.ExchangeDataSource
 import com.kholodkov.coinmonitor.data.datasource.orphaned.OrphanedDataSource
 import com.kholodkov.coinmonitor.data.datasource.purchase.PurchaseDataSource
 import com.kholodkov.coinmonitor.data.datasource.transaction.TransactionDataSource
 import com.kholodkov.coinmonitor.data.datasource.user.UserDataSource
 import com.kholodkov.coinmonitor.data.mapper.toResolved
-import com.kholodkov.coinmonitor.data.model.day.Day
+import com.kholodkov.coinmonitor.domain.model.currency.ExchangeRate
 import com.kholodkov.coinmonitor.data.model.orphaned.Orphaned
 import com.kholodkov.coinmonitor.data.model.purchase.RemotePurchase
 import com.kholodkov.coinmonitor.data.model.purchase.RemotePurchaseChange
 import com.kholodkov.coinmonitor.data.model.transaction.RemoteTransaction
 import com.kholodkov.coinmonitor.data.model.transaction.RemoteTransactionChange
 import com.kholodkov.coinmonitor.data.datasource.orphaned.OrphanedType
-import com.kholodkov.coinmonitor.domain.model.User
+import com.kholodkov.coinmonitor.data.model.exchange.NewExchangeRate
+import com.kholodkov.coinmonitor.domain.model.user.User
 import com.kholodkov.coinmonitor.domain.repository.SyncRepository
 import com.kholodkov.coinmonitor.domain.scheduler.LoadExchangeRateScheduler
 import kotlinx.coroutines.flow.filter
@@ -24,6 +26,7 @@ import javax.inject.Inject
 
 class SyncRepositoryImpl @Inject constructor(
     private val userDataSource: UserDataSource,
+    private val exchangeDataSource: ExchangeDataSource,
     private val dayDataSource: DayDataSource,
     private val transactionDataSource: TransactionDataSource,
     private val purchaseDataSource: PurchaseDataSource,
@@ -35,16 +38,16 @@ class SyncRepositoryImpl @Inject constructor(
     override suspend fun sync() {
         merge(
             userDataSource.observeRemoteChanges().map { SyncEvent.Users(it) },
-            dayDataSource.observeRemoteChanges().map { SyncEvent.Days(it) },
+            exchangeDataSource.observeRemoteChanges().map { SyncEvent.ExchangeRates(it) },
             transactionDataSource.observeRemoteChanges().map { SyncEvent.Transactions(it) },
             purchaseDataSource.observeRemoteChanges().map { SyncEvent.Purchases(it) },
-            dayDataSource.observeHasDaysWithoutRate()
+            exchangeDataSource.observeHasMissingRates()
                 .filter { it }
                 .map { SyncEvent.RatesMissing }
         ).collect { event ->
             when (event) {
                 is SyncEvent.Users -> syncUsers(event.users)
-                is SyncEvent.Days -> syncDays(event.days)
+                is SyncEvent.ExchangeRates -> syncExchangeRates(event.exchangeRates)
                 is SyncEvent.Transactions -> syncTransactions(event.transactions)
                 is SyncEvent.Purchases -> syncPurchases(event.purchases)
                 is SyncEvent.RatesMissing -> syncRates()
@@ -80,8 +83,15 @@ class SyncRepositoryImpl @Inject constructor(
         }
     }
 
-    private suspend fun syncDays(days: List<Day>) = days.forEach { day ->
-        dayDataSource.resolve(day)
+    private suspend fun syncExchangeRates(exchangeRates: List<ExchangeRate>) = exchangeRates.forEach { exchangeRate ->
+        val dayId = dayDataSource.getOrCreateDayId(exchangeRate.date)
+        exchangeDataSource.addFromRemote(
+            NewExchangeRate(
+                dayId = dayId,
+                currency = exchangeRate.currency,
+                rate = exchangeRate.exchangeRate
+            )
+        )
     }
 
     private suspend fun syncTransactions(changes: List<RemoteTransactionChange>) =
@@ -124,8 +134,18 @@ class SyncRepositoryImpl @Inject constructor(
     private suspend fun handleRemotePurchase(purchase: RemotePurchase) = runCatching {
         val userId = userDataSource.getIdByUid(purchase.userUid)
             ?: error("No user with uid ${purchase.userUid}")
+
+        val transactionId = purchase.transactionUid?.let {
+            transactionDataSource.getIdByUid(it)
+                ?: error("No transaction with uid $it")
+        }
+
         val dayId = dayDataSource.getOrCreateDayId(purchase.date)
-        purchaseDataSource.resolve(purchase.toResolved(dayId, userId))
+        purchaseDataSource.resolve(purchase.toResolved(
+            dayId = dayId,
+            userId = userId,
+            transactionId = transactionId
+        ))
     }
 
     private suspend fun <T> addToOrphaned(type: OrphanedType, model: T) {
@@ -141,7 +161,7 @@ class SyncRepositoryImpl @Inject constructor(
 
     private sealed class SyncEvent {
         data class Users(val users: List<User>) : SyncEvent()
-        data class Days(val days: List<Day>) : SyncEvent()
+        data class ExchangeRates(val exchangeRates: List<ExchangeRate>) : SyncEvent()
         data class Transactions(val transactions: List<RemoteTransactionChange>) : SyncEvent()
         data class Purchases(val purchases: List<RemotePurchaseChange>) : SyncEvent()
         object RatesMissing : SyncEvent()

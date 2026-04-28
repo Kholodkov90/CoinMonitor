@@ -1,25 +1,15 @@
 package com.kholodkov.coinmonitor.data.datasource.day
 
-import com.kholodkov.coinmonitor.data.model.day.Day
+import com.kholodkov.coinmonitor.data.local.db.dao.DayDao
+import com.kholodkov.coinmonitor.data.local.db.entity.day.DayEntity
 import java.time.LocalDate
 import javax.inject.Inject
 
 class DayDataSource @Inject constructor(
-    private val remoteDataSource: DayRemoteDataSource,
-    private val localDataSource: DayLocalDataSource
+    private val dayDao: DayDao
 ) {
-    fun observeRemoteChanges() = remoteDataSource.observeChanges()
-
-    fun observeHasDaysWithoutRate() = localDataSource.observeHasDaysWithoutRate()
-
-    suspend fun getOrCreateDayId(date: LocalDate) = localDataSource.getOrCreateDayId(date)
-
-    suspend fun resolve(day: Day) = localDataSource.resolve(day)
-
-    suspend fun getDaysWithoutRate() = localDataSource.getDaysWithoutRate()
-
-    suspend fun updateRate(day: Day) {
-        localDataSource.updateRate(day)
-        remoteDataSource.updateRate(day)
+    suspend fun getOrCreateDayId(date: LocalDate): Long {
+        dayDao.getIdByDate(date)?.let { return it }
+        return dayDao.insert(DayEntity(date = date))
     }
 }

@@ -1,7 +1,7 @@
 package com.kholodkov.coinmonitor.data.repository
 
 import com.kholodkov.coinmonitor.data.datasource.user.UserDataSource
-import com.kholodkov.coinmonitor.domain.model.User
+import com.kholodkov.coinmonitor.domain.model.user.User
 import com.kholodkov.coinmonitor.domain.repository.UserRepository
 import javax.inject.Inject
 

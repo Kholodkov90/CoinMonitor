@@ -1,7 +1,6 @@
 package com.kholodkov.coinmonitor.domain.repository
 
 import androidx.credentials.Credential
-import com.kholodkov.coinmonitor.domain.model.User
 import kotlinx.coroutines.flow.Flow
 
 interface AuthRepository {

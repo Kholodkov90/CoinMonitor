@@ -4,17 +4,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kholodkov.coinmonitor.core.tools.parseToBigDecimal
 import com.kholodkov.coinmonitor.core.tools.toDisplayString
-import com.kholodkov.coinmonitor.domain.model.Currency
-import com.kholodkov.coinmonitor.domain.model.RestoreTransactionParams
-import com.kholodkov.coinmonitor.domain.model.SaveTransactionParams
-import com.kholodkov.coinmonitor.domain.model.Transaction
-import com.kholodkov.coinmonitor.domain.usecase.DeleteTransactionUseCase
-import com.kholodkov.coinmonitor.domain.usecase.ObserveDailySummary
-import com.kholodkov.coinmonitor.domain.usecase.ObserveInputCurrencyUseCase
-import com.kholodkov.coinmonitor.domain.usecase.ObserveTransactionsByDateUseCase
-import com.kholodkov.coinmonitor.domain.usecase.RestoreTransactionUseCase
-import com.kholodkov.coinmonitor.domain.usecase.SaveTransactionUseCase
-import com.kholodkov.coinmonitor.domain.usecase.SetInputCurrencyUseCase
+import com.kholodkov.coinmonitor.domain.model.currency.Currency
+import com.kholodkov.coinmonitor.domain.model.transaction.RestoreTransactionParams
+import com.kholodkov.coinmonitor.domain.model.transaction.SaveTransactionParams
+import com.kholodkov.coinmonitor.domain.model.transaction.Transaction
+import com.kholodkov.coinmonitor.domain.usecase.transaction.DeleteTransactionUseCase
+import com.kholodkov.coinmonitor.domain.usecase.transaction.ObserveDailySummary
+import com.kholodkov.coinmonitor.domain.usecase.currency.ObserveInputCurrencyUseCase
+import com.kholodkov.coinmonitor.domain.usecase.transaction.ObserveTransactionsByDateUseCase
+import com.kholodkov.coinmonitor.domain.usecase.transaction.RestoreTransactionUseCase
+import com.kholodkov.coinmonitor.domain.usecase.transaction.SaveTransactionUseCase
+import com.kholodkov.coinmonitor.domain.usecase.currency.SetInputCurrencyUseCase
 import com.kholodkov.coinmonitor.feature.main.mapper.toItemList
 import com.kholodkov.coinmonitor.feature.main.mapper.toRestoreTransactionParams
 import com.kholodkov.coinmonitor.feature.main.state.MainUiEvent
@@ -57,7 +57,7 @@ class MainViewModel @Inject constructor(
         ) { transactions, dailySummary ->
             MainInfo(
                 date = date,
-                balance = dailySummary.balance,
+                balance = dailySummary.budget,
                 spent = dailySummary.spent,
                 remaining = dailySummary.remaining,
                 currency = dailySummary.currency,

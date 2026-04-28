@@ -1,10 +1,8 @@
 package com.kholodkov.coinmonitor.data.datasource.transaction
 
-import com.kholodkov.coinmonitor.data.local.db.mapper.toDomainList
 import com.kholodkov.coinmonitor.data.model.transaction.EditedTransaction
 import com.kholodkov.coinmonitor.data.model.transaction.NewTransaction
 import com.kholodkov.coinmonitor.data.model.transaction.ResolvedTransaction
-import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -14,17 +12,20 @@ class TransactionDataSource @Inject constructor(
 ) {
     fun observeRemoteChanges() = remoteDataSource.observeChanges()
 
-    fun observeByDate(date: LocalDate) = localDataSource.observeByDate(date).map { it.toDomainList() }
+    fun observeByDate(date: LocalDate) = localDataSource.observeByDate(date)
 
-    fun observeSpendsBefore(date: LocalDate) = localDataSource.observeSpendsBefore(date).map { it.toDomainList() }
+    fun observeUpToDate(date: LocalDate) = localDataSource.observeUpToDate(date)
 
-    fun observeSpendsByDate(date: LocalDate) = localDataSource.observeSpendsByDate(date).map { it.toDomainList() }
+    fun observeAll() = localDataSource.observeAll()
 
-    suspend fun addNew(transaction: NewTransaction) {
-        localDataSource.insert(transaction)
+    suspend fun getIdByUid(uid: String) = localDataSource.getIdByUid(uid)
+
+    suspend fun addNew(transaction: NewTransaction): Long {
+        val id = localDataSource.insert(transaction)
         val remoteModel = localDataSource.getRemoteModel(transaction.uid)
             ?: error("No transaction after insert ${transaction.uid}")
         remoteDataSource.push(remoteModel)
+        return id
     }
 
     suspend fun edit(transaction: EditedTransaction) {

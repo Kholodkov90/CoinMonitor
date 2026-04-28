@@ -7,12 +7,10 @@ import com.kholodkov.coinmonitor.data.datasource.user.UserDataSource
 import com.kholodkov.coinmonitor.data.local.tools.UidGenerator
 import com.kholodkov.coinmonitor.data.mapper.toEditedTransaction
 import com.kholodkov.coinmonitor.data.mapper.toNewTransaction
-import com.kholodkov.coinmonitor.domain.model.CurrencySum
-import com.kholodkov.coinmonitor.domain.model.EditTransactionParams
-import com.kholodkov.coinmonitor.domain.model.NewTransactionParams
-import com.kholodkov.coinmonitor.domain.model.RestoreTransactionParams
+import com.kholodkov.coinmonitor.domain.model.transaction.EditTransactionParams
+import com.kholodkov.coinmonitor.domain.model.transaction.NewTransactionParams
+import com.kholodkov.coinmonitor.domain.model.transaction.RestoreTransactionParams
 import com.kholodkov.coinmonitor.domain.repository.TransactionRepository
-import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -26,17 +24,14 @@ class TransactionRepositoryImpl @Inject constructor(
     override fun observeByDate(date: LocalDate) =
         transactionDataSource.observeByDate(date)
 
-    override fun observeSpendsBefore(date: LocalDate): Flow<List<CurrencySum>> =
-        transactionDataSource.observeSpendsBefore(date)
+    override fun observeUpToDate(date: LocalDate) = transactionDataSource.observeUpToDate(date)
 
-    override fun observeSpendsByDate(date: LocalDate): Flow<List<CurrencySum>> =
-        transactionDataSource.observeSpendsByDate(date)
+    override fun observeAll() = transactionDataSource.observeAll()
 
     override suspend fun addNew(params: NewTransactionParams) {
         val currentUser = authDataSource.getCurrentUser() ?: error("User is not logged in")
         val userId = userDataSource.getIdByUid(currentUser.uid)
             ?: error("User ${currentUser.uid} doesn't exists")
-
         transactionDataSource.addNew(
             params.toNewTransaction(
                 uid = uidGenerator.generate(),

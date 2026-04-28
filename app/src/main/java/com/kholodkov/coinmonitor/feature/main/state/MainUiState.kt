@@ -1,7 +1,7 @@
 package com.kholodkov.coinmonitor.feature.main.state
 
 import com.kholodkov.coinmonitor.core.tools.parseToBigDecimal
-import com.kholodkov.coinmonitor.domain.model.Currency
+import com.kholodkov.coinmonitor.domain.model.currency.Currency
 import com.kholodkov.coinmonitor.feature.main.model.TransactionItem
 import java.math.BigDecimal
 

@@ -1,11 +1,13 @@
 package com.kholodkov.coinmonitor.data.datasource.transaction
 
 import com.kholodkov.coinmonitor.data.local.db.dao.TransactionDao
+import com.kholodkov.coinmonitor.data.local.db.mapper.toDomainList
 import com.kholodkov.coinmonitor.data.local.db.mapper.toEntity
 import com.kholodkov.coinmonitor.data.local.db.mapper.toRemote
 import com.kholodkov.coinmonitor.data.model.transaction.EditedTransaction
 import com.kholodkov.coinmonitor.data.model.transaction.NewTransaction
 import com.kholodkov.coinmonitor.data.model.transaction.ResolvedTransaction
+import kotlinx.coroutines.flow.map
 import java.time.Instant
 import java.time.LocalDate
 import javax.inject.Inject
@@ -13,11 +15,13 @@ import javax.inject.Inject
 class TransactionLocalDataSource @Inject constructor(
     private val transactionDao: TransactionDao
 ) {
-    fun observeByDate(date: LocalDate) = transactionDao.observeTransactionsByDate(date)
+    fun observeByDate(date: LocalDate) = transactionDao.observeByDate(date).map { it.toDomainList() }
 
-    fun observeSpendsBefore(date: LocalDate) = transactionDao.observeSpendsBefore(date)
+    fun observeUpToDate(date: LocalDate) = transactionDao.observeUpToDate(date).map { it.toDomainList() }
 
-    fun observeSpendsByDate(date: LocalDate) = transactionDao.observeSpendsByDate(date)
+    fun observeAll() = transactionDao.observeAll().map { it.toDomainList() }
+
+    suspend fun getIdByUid(uid: String) = transactionDao.getIdByUid(uid)
 
     suspend fun getRemoteModel(uid: String) = transactionDao.getSyncEntity(uid)?.toRemote()
 

@@ -4,8 +4,8 @@ import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.kholodkov.coinmonitor.domain.model.User
-import com.kholodkov.coinmonitor.domain.usecase.EnsureUserExistsUseCase
+import com.kholodkov.coinmonitor.domain.model.user.User
+import com.kholodkov.coinmonitor.domain.usecase.auth.EnsureUserExistsUseCase
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 

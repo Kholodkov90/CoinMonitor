@@ -2,8 +2,8 @@ package com.kholodkov.coinmonitor.app
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kholodkov.coinmonitor.domain.usecase.ObserveIsLoggedInUseCase
-import com.kholodkov.coinmonitor.domain.usecase.SyncUseCase
+import com.kholodkov.coinmonitor.domain.usecase.auth.ObserveIsLoggedInUseCase
+import com.kholodkov.coinmonitor.domain.usecase.sync.SyncUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.SharingStarted

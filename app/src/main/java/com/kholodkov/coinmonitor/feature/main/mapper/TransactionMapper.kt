@@ -1,11 +1,9 @@
 package com.kholodkov.coinmonitor.feature.main.mapper
 
 import com.kholodkov.coinmonitor.core.tools.toDisplayString
-import com.kholodkov.coinmonitor.domain.model.RestoreTransactionParams
-import com.kholodkov.coinmonitor.domain.model.Transaction
+import com.kholodkov.coinmonitor.domain.model.transaction.RestoreTransactionParams
+import com.kholodkov.coinmonitor.domain.model.transaction.Transaction
 import com.kholodkov.coinmonitor.feature.main.model.TransactionItem
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 
 fun Transaction.toItem() = TransactionItem(

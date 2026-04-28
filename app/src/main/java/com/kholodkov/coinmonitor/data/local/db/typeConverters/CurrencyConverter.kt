@@ -1,7 +1,7 @@
 package com.kholodkov.coinmonitor.data.local.db.typeConverters
 
 import androidx.room.TypeConverter
-import com.kholodkov.coinmonitor.domain.model.Currency
+import com.kholodkov.coinmonitor.domain.model.currency.Currency
 
 class CurrencyConverter {
     @TypeConverter

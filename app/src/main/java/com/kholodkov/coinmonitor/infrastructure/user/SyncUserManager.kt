@@ -7,7 +7,7 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
-import com.kholodkov.coinmonitor.domain.model.User
+import com.kholodkov.coinmonitor.domain.model.user.User
 import com.kholodkov.coinmonitor.domain.scheduler.SyncUserScheduler
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject

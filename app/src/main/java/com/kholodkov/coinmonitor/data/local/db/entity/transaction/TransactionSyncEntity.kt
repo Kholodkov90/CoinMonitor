@@ -1,7 +1,7 @@
 package com.kholodkov.coinmonitor.data.local.db.entity.transaction
 
 import androidx.room.ColumnInfo
-import com.kholodkov.coinmonitor.domain.model.Currency
+import com.kholodkov.coinmonitor.domain.model.currency.Currency
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate

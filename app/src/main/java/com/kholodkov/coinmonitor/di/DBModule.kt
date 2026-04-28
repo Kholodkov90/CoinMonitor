@@ -35,6 +35,9 @@ object DBModule {
     fun provideDayDao(db: CoinDb) = db.getDayDao()
 
     @Provides
+    fun provideExchangeRateDao(db: CoinDb) = db.getExchangeRateDao()
+
+    @Provides
     fun provideTransactionDao(db: CoinDb) = db.getTransactionDao()
 
     @Provides

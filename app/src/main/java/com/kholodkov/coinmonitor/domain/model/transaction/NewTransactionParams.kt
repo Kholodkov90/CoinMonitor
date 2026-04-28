@@ -1,0 +1,13 @@
+package com.kholodkov.coinmonitor.domain.model.transaction
+
+import com.kholodkov.coinmonitor.domain.model.currency.Currency
+import java.math.BigDecimal
+import java.time.LocalDate
+import java.time.LocalTime
+
+data class NewTransactionParams(
+    val date: LocalDate,
+    val amount: BigDecimal,
+    val currency: Currency,
+    val time: LocalTime
+)

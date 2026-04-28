@@ -1,6 +1,6 @@
 package com.kholodkov.coinmonitor.domain.repository
 
-import com.kholodkov.coinmonitor.domain.model.Currency
+import com.kholodkov.coinmonitor.domain.model.currency.Currency
 import kotlinx.coroutines.flow.Flow
 
 interface PreferencesRepository {

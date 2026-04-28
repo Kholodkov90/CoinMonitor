@@ -1,6 +1,6 @@
 package com.kholodkov.coinmonitor.data.model.transaction
 
-import com.kholodkov.coinmonitor.domain.model.Currency
+import com.kholodkov.coinmonitor.domain.model.currency.Currency
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalTime

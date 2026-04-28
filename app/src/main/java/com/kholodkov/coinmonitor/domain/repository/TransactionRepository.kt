@@ -1,17 +1,16 @@
 package com.kholodkov.coinmonitor.domain.repository
 
-import com.kholodkov.coinmonitor.domain.model.CurrencySum
-import com.kholodkov.coinmonitor.domain.model.EditTransactionParams
-import com.kholodkov.coinmonitor.domain.model.NewTransactionParams
-import com.kholodkov.coinmonitor.domain.model.RestoreTransactionParams
-import com.kholodkov.coinmonitor.domain.model.Transaction
+import com.kholodkov.coinmonitor.domain.model.transaction.EditTransactionParams
+import com.kholodkov.coinmonitor.domain.model.transaction.NewTransactionParams
+import com.kholodkov.coinmonitor.domain.model.transaction.RestoreTransactionParams
+import com.kholodkov.coinmonitor.domain.model.transaction.Transaction
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 
 interface TransactionRepository {
     fun observeByDate(date: LocalDate): Flow<List<Transaction>>
-    fun observeSpendsBefore(date: LocalDate): Flow<List<CurrencySum>>
-    fun observeSpendsByDate(date: LocalDate): Flow<List<CurrencySum>>
+    fun observeUpToDate(date: LocalDate): Flow<List<Transaction>>
+    fun observeAll(): Flow<List<Transaction>>
     suspend fun addNew(params: NewTransactionParams)
     suspend fun edit(params: EditTransactionParams)
     suspend fun restore(params: RestoreTransactionParams)

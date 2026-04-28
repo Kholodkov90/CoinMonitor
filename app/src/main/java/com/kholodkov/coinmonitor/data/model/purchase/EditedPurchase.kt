@@ -1,6 +1,6 @@
 package com.kholodkov.coinmonitor.data.model.purchase
 
-import com.kholodkov.coinmonitor.domain.model.Currency
+import com.kholodkov.coinmonitor.domain.model.currency.Currency
 import java.math.BigDecimal
 
 data class EditedPurchase(

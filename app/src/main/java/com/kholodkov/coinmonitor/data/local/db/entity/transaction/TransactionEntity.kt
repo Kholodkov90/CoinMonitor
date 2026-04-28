@@ -7,7 +7,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.kholodkov.coinmonitor.data.local.db.entity.day.DayEntity
 import com.kholodkov.coinmonitor.data.local.db.entity.user.UserEntity
-import com.kholodkov.coinmonitor.domain.model.Currency
+import com.kholodkov.coinmonitor.domain.model.currency.Currency
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalTime
