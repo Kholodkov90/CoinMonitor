@@ -3,8 +3,6 @@ package com.kholodkov.coinmonitor.domain.usecase.purchase
 import com.kholodkov.coinmonitor.domain.repository.ExchangeRepository
 import com.kholodkov.coinmonitor.domain.repository.PreferencesRepository
 import com.kholodkov.coinmonitor.domain.repository.PurchaseRepository
-import com.kholodkov.coinmonitor.domain.tools.convertTo
-import com.kholodkov.coinmonitor.domain.tools.rateFor
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.math.BigDecimal
@@ -17,16 +15,17 @@ class ObservePurchaseTotalAmountUseCase @Inject constructor(
 ) {
     operator fun invoke(): Flow<BigDecimal> = combine(
         purchaseRepository.observePlanned(),
-        exchangeRepository.observeAll(),
+        exchangeRepository.observeExchangeRates(),
         preferencesRepository.observeDisplayCurrency()
     ) { purchases, exchangeRates, currency ->
 
         purchases.fold(BigDecimal.ZERO) { totalAmount, purchase ->
             totalAmount.plus(
-                purchase.amount.convertTo(
+                exchangeRates.convert(
+                    amount = purchase.amount,
                     from = purchase.currency,
                     to = currency,
-                    rate = exchangeRates.rateFor(purchase.date)
+                    date = purchase.date
                 )
             )
         }

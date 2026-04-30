@@ -1,4 +1,4 @@
-package com.kholodkov.coinmonitor.domain.model.summary
+package com.kholodkov.coinmonitor.domain.model.transaction
 
 import com.kholodkov.coinmonitor.domain.model.currency.Currency
 import java.math.BigDecimal

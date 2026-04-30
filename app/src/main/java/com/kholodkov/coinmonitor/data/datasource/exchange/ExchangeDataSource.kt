@@ -14,7 +14,7 @@ class ExchangeDataSource @Inject constructor(
 
     fun observeRemoteChanges() = remoteDataSource.observeChanges()
 
-    fun observeAll() = localDataSource.observeAll()
+    fun observeExchangeRates() = localDataSource.observeExchangeRates()
 
     suspend fun getDatesWithMissingRates() = localDataSource.getDatesWithMissingRates()
 

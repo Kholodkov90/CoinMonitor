@@ -24,5 +24,5 @@ class ExchangeRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun observeAll() = exchangeDataSource.observeAll()
+    override fun observeExchangeRates() = exchangeDataSource.observeExchangeRates()
 }

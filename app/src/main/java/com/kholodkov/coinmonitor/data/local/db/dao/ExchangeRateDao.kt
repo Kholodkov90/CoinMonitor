@@ -36,7 +36,6 @@ interface ExchangeRateDao {
     )
     fun observeAll(): Flow<List<FullExchangeRateEntity>>
 
-
     @Query(
         """
             SELECT 
@@ -62,5 +61,5 @@ interface ExchangeRateDao {
     suspend fun getDatesWithMissingRates(date: LocalDate = LocalDate.now()): List<LocalDate>
 
     @Insert(onConflict = IGNORE)
-    suspend fun insertIfNotExists(exchangeRate: ExchangeRateEntity) : Long
+    suspend fun insertIfNotExists(exchangeRate: ExchangeRateEntity): Long
 }

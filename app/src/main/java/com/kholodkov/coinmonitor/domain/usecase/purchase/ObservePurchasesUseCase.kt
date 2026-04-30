@@ -1,7 +1,7 @@
 package com.kholodkov.coinmonitor.domain.usecase.purchase
 
 import com.kholodkov.coinmonitor.domain.model.currency.Currency
-import com.kholodkov.coinmonitor.domain.model.currency.ExchangeRate
+import com.kholodkov.coinmonitor.domain.model.currency.ExchangeRates
 import com.kholodkov.coinmonitor.domain.model.purchase.Purchase
 import com.kholodkov.coinmonitor.domain.model.purchase.PurchaseProjection
 import com.kholodkov.coinmonitor.domain.model.purchase.PurchaseStatus
@@ -12,8 +12,6 @@ import com.kholodkov.coinmonitor.domain.repository.PurchaseRepository
 import com.kholodkov.coinmonitor.domain.repository.TransactionRepository
 import com.kholodkov.coinmonitor.domain.tools.calculateBudget
 import com.kholodkov.coinmonitor.domain.tools.calculateSpentByDate
-import com.kholodkov.coinmonitor.domain.tools.convertTo
-import com.kholodkov.coinmonitor.domain.tools.rateFor
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.math.BigDecimal
@@ -31,7 +29,7 @@ class ObservePurchasesUseCase @Inject constructor(
     operator fun invoke(): Flow<List<PurchaseProjection>> = combine(
         purchaseRepository.observeAll(),
         transactionRepository.observeAll(),
-        exchangeRepository.observeAll(),
+        exchangeRepository.observeExchangeRates(),
         preferencesRepository.observeDisplayCurrency()
     ) { purchases, transactions, exchangeRates, currency ->
         val spentByDate = transactions.calculateSpentByDate(
@@ -67,7 +65,7 @@ class ObservePurchasesUseCase @Inject constructor(
                 availableAmountToPurchaseDate = availableAmountToPurchaseDate,
                 availableAmountNow = availableAmountNow,
                 currency = currency,
-                rate = exchangeRates.rateFor(purchase.date),
+                exchangeRates = exchangeRates,
             )
         }
     }
@@ -76,7 +74,7 @@ class ObservePurchasesUseCase @Inject constructor(
     private fun calculateAvailableAmount(
         date: LocalDate,
         currency: Currency,
-        exchangeRates: List<ExchangeRate>,
+        exchangeRates: ExchangeRates,
         spentByDate: Map<LocalDate, BigDecimal>,
         handledPurchases: List<PurchaseProjection>
     ): BigDecimal {
@@ -87,10 +85,11 @@ class ObservePurchasesUseCase @Inject constructor(
         val plannedBefore = handledPurchases
             .filter { it.status !is PurchaseStatus.Completed }
             .sumOf {
-                it.amount.convertTo(
+                exchangeRates.convert(
+                    amount = it.amount,
                     from = it.currency,
                     to = currency,
-                    rate = exchangeRates.rateFor(it.date)
+                    date = it.date
                 )
             }
 
@@ -109,13 +108,18 @@ class ObservePurchasesUseCase @Inject constructor(
         availableAmountToPurchaseDate: BigDecimal,
         availableAmountNow: BigDecimal,
         currency: Currency,
-        rate: BigDecimal,
+        exchangeRates: ExchangeRates,
     ): PurchaseProjection {
         if (purchase.transactionUid != null) {
             return purchase.toProjection(status = PurchaseStatus.Completed)
         }
 
-        val amountInCurrency = purchase.amount.convertTo(purchase.currency, currency, rate)
+        val amountInCurrency = exchangeRates.convert(
+            amount = purchase.amount,
+            from = purchase.currency,
+            to = currency,
+            date = purchase.date
+        )
 
         if (amountInCurrency <= availableAmountNow) {
             return purchase.toProjection(status = PurchaseStatus.Available)

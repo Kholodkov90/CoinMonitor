@@ -5,6 +5,8 @@ import com.kholodkov.coinmonitor.data.local.db.mapper.toDomain
 import com.kholodkov.coinmonitor.data.local.db.mapper.toDomainList
 import com.kholodkov.coinmonitor.data.local.db.mapper.toEntity
 import com.kholodkov.coinmonitor.data.model.exchange.NewExchangeRate
+import com.kholodkov.coinmonitor.domain.model.currency.ExchangeRates
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
@@ -13,7 +15,10 @@ class ExchangeLocalDataSource @Inject constructor(
 ) {
     fun observeHasMissingRates() = exchangeRateDao.observeHasMissingRates()
 
-    fun observeAll() = exchangeRateDao.observeAll().map { it.toDomainList() }
+    fun observeExchangeRates(): Flow<ExchangeRates> =
+        exchangeRateDao.observeAll().map {
+            ExchangeRates(it.toDomainList())
+        }
 
     suspend fun getDatesWithMissingRates() = exchangeRateDao.getDatesWithMissingRates()
 

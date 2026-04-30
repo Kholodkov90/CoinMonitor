@@ -8,6 +8,5 @@ import java.time.LocalDate
 object BudgetDefaults {
     val DAILY_LIMIT = BigDecimal("6000")
     val DEFAULT_CURRENCY = Currency.RSD
-    val DEFAULT_RATE = BigDecimal("117.2")
-    val START_DATE: LocalDate = LocalDate.parse("2026-04-27")
+    val START_DATE: LocalDate = LocalDate.parse("2015-12-01")
 }

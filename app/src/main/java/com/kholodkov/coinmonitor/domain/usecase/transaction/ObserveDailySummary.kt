@@ -1,6 +1,6 @@
 package com.kholodkov.coinmonitor.domain.usecase.transaction
 
-import com.kholodkov.coinmonitor.domain.model.summary.DailySummary
+import com.kholodkov.coinmonitor.domain.model.transaction.DailySummary
 import com.kholodkov.coinmonitor.domain.repository.ExchangeRepository
 import com.kholodkov.coinmonitor.domain.repository.PreferencesRepository
 import com.kholodkov.coinmonitor.domain.repository.TransactionRepository
@@ -21,7 +21,7 @@ class ObserveDailySummary @Inject constructor(
     operator fun invoke(date: LocalDate): Flow<DailySummary> {
         return combine(
             transactionRepository.observeUpToDate(date),
-            exchangeRepository.observeAll(),
+            exchangeRepository.observeExchangeRates(),
             preferencesRepository.observeDisplayCurrency()
         ) { transactions, exchangeRates, currency ->
             val spentByDate = transactions.calculateSpentByDate(
