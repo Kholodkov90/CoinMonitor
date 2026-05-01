@@ -32,6 +32,6 @@ class AuthDataSource @Inject constructor(
         awaitClose { firebaseAuth.removeAuthStateListener(listener) }
     }.distinctUntilChanged()
 
-    fun getCurrentUser() = firebaseAuth.currentUser?.toUser()
+    fun getCurrentUser() = firebaseAuth.currentUser?.toUser() ?: error("User is not logged in")
     fun signOut() = firebaseAuth.signOut()
 }

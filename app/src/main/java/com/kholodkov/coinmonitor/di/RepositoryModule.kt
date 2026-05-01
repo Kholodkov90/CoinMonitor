@@ -2,15 +2,15 @@ package com.kholodkov.coinmonitor.di
 
 import com.kholodkov.coinmonitor.data.repository.AuthRepositoryImpl
 import com.kholodkov.coinmonitor.data.repository.ExchangeRepositoryImpl
-import com.kholodkov.coinmonitor.data.repository.PreferencesRepositoryImpl
 import com.kholodkov.coinmonitor.data.repository.PurchaseRepositoryImpl
+import com.kholodkov.coinmonitor.data.repository.SettingsRepositoryImpl
 import com.kholodkov.coinmonitor.data.repository.SyncRepositoryImpl
 import com.kholodkov.coinmonitor.data.repository.TransactionRepositoryImpl
 import com.kholodkov.coinmonitor.data.repository.UserRepositoryImpl
 import com.kholodkov.coinmonitor.domain.repository.AuthRepository
 import com.kholodkov.coinmonitor.domain.repository.ExchangeRepository
-import com.kholodkov.coinmonitor.domain.repository.PreferencesRepository
 import com.kholodkov.coinmonitor.domain.repository.PurchaseRepository
+import com.kholodkov.coinmonitor.domain.repository.SettingsRepository
 import com.kholodkov.coinmonitor.domain.repository.SyncRepository
 import com.kholodkov.coinmonitor.domain.repository.TransactionRepository
 import com.kholodkov.coinmonitor.domain.repository.UserRepository
@@ -33,7 +33,7 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
-    abstract fun bindPreferencesRepository(preferencesRepository: PreferencesRepositoryImpl): PreferencesRepository
+    abstract fun bindSettingsRepository(settingsRepository: SettingsRepositoryImpl): SettingsRepository
 
     @Binds
     @Singleton

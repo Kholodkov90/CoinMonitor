@@ -8,7 +8,7 @@ import com.kholodkov.coinmonitor.domain.model.statistic.WeekStats
 import com.kholodkov.coinmonitor.domain.model.statistic.YearStats
 import com.kholodkov.coinmonitor.domain.model.transaction.Transaction
 import com.kholodkov.coinmonitor.domain.repository.ExchangeRepository
-import com.kholodkov.coinmonitor.domain.repository.PreferencesRepository
+import com.kholodkov.coinmonitor.domain.repository.SettingsRepository
 import com.kholodkov.coinmonitor.domain.repository.TransactionRepository
 import com.kholodkov.coinmonitor.domain.tools.calculateSpentByDate
 import kotlinx.coroutines.flow.Flow
@@ -23,35 +23,46 @@ import javax.inject.Inject
 class ObserveStatisticSummaryUseCase @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val exchangeRepository: ExchangeRepository,
-    private val preferencesRepository: PreferencesRepository
+    private val settingsRepository: SettingsRepository
 ) {
     operator fun invoke(): Flow<StatisticSummary> = combine(
         transactionRepository.observeAll(),
         exchangeRepository.observeExchangeRates(),
-        preferencesRepository.observeDisplayCurrency()
-    ) { transactions, exchangeRates, currency ->
+        settingsRepository.observeDisplayCurrency(),
+        settingsRepository.observeStartOfWeek()
+    ) { transactions, exchangeRates, currency, startOfWeek ->
         StatisticSummary(
             currency = currency,
-            weeklyStats = transactions.groupByWeek(exchangeRates, currency),
-            monthlyStats = transactions.groupByMonth(exchangeRates, currency),
-            yearlyStats = transactions.groupByYear(exchangeRates, currency)
+            weeklyStats = transactions.groupByWeek(
+                exchangeRates = exchangeRates,
+                currency = currency,
+                startOfWeek = startOfWeek
+            ),
+            monthlyStats = transactions.groupByMonth(
+                exchangeRates = exchangeRates,
+                currency = currency
+            ),
+            yearlyStats = transactions.groupByYear(
+                exchangeRates = exchangeRates,
+                currency = currency
+            )
         )
     }
 
     private fun List<Transaction>.groupByWeek(
         exchangeRates: ExchangeRates,
         currency: Currency,
-        startOfWeek: DayOfWeek = DayOfWeek.MONDAY
+        startOfWeek: DayOfWeek
     ): List<WeekStats> {
         if (isEmpty()) return emptyList()
 
-        val startOfWeekOrdinal = startOfWeek.value.toLong()
+        val weekFields = WeekFields.of(startOfWeek, 1)
         val firstDate = minOf { it.date }
-        val firstStartOfWeek = firstDate.with(WeekFields.ISO.dayOfWeek(), startOfWeekOrdinal)
-        val lastStartOfWeek = LocalDate.now().with(WeekFields.ISO.dayOfWeek(), startOfWeekOrdinal)
+        val firstStartOfWeek = firstDate.with(weekFields.dayOfWeek(), 1L)
+        val lastStartOfWeek = LocalDate.now().with(weekFields.dayOfWeek(), 1L)
 
         val transactionsByWeek = groupBy {
-            it.date.with(WeekFields.ISO.dayOfWeek(), startOfWeekOrdinal)
+            it.date.with(weekFields.dayOfWeek(), 1L)
         }
 
         return generateSequence(firstStartOfWeek) { it.plusWeeks(1) }

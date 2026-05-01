@@ -29,7 +29,7 @@ class TransactionRepositoryImpl @Inject constructor(
     override fun observeAll() = transactionDataSource.observeAll()
 
     override suspend fun addNew(params: NewTransactionParams) {
-        val currentUser = authDataSource.getCurrentUser() ?: error("User is not logged in")
+        val currentUser = authDataSource.getCurrentUser()
         val userId = userDataSource.getIdByUid(currentUser.uid)
             ?: error("User ${currentUser.uid} doesn't exists")
         transactionDataSource.addNew(

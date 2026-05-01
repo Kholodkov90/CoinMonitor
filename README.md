@@ -15,15 +15,14 @@ A family application for tracking expenses with offline support and syncing via 
 - Planned purchases (large expense scheduling)
 - Swipe to delete with undo for planned purchases
 - Weekly / monthly / yearly statistics
+- Display name customization
+- Display currency customization
+- Start of week customization (Monday/Sunday)
 
 ### Planned
 - Russian and English language support
 - Multi-module architecture
 - Unit and UI tests
-- Display name customization
-- Display currency customization
-- Display name customization
-- Start of week customization (Monday/Sunday)
 
 ## Tech Stack
 - Kotlin, Jetpack Compose, Jetpack Navigation

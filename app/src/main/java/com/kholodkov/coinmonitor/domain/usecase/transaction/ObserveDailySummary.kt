@@ -2,7 +2,7 @@ package com.kholodkov.coinmonitor.domain.usecase.transaction
 
 import com.kholodkov.coinmonitor.domain.model.transaction.DailySummary
 import com.kholodkov.coinmonitor.domain.repository.ExchangeRepository
-import com.kholodkov.coinmonitor.domain.repository.PreferencesRepository
+import com.kholodkov.coinmonitor.domain.repository.SettingsRepository
 import com.kholodkov.coinmonitor.domain.repository.TransactionRepository
 import com.kholodkov.coinmonitor.domain.tools.calculateBudget
 import com.kholodkov.coinmonitor.domain.tools.calculateSpentByDate
@@ -14,7 +14,7 @@ import javax.inject.Inject
 
 class ObserveDailySummary @Inject constructor(
     private val transactionRepository: TransactionRepository,
-    private val preferencesRepository: PreferencesRepository,
+    private val settingsRepository: SettingsRepository,
     private val exchangeRepository: ExchangeRepository,
 ) {
 
@@ -22,7 +22,7 @@ class ObserveDailySummary @Inject constructor(
         return combine(
             transactionRepository.observeUpToDate(date),
             exchangeRepository.observeExchangeRates(),
-            preferencesRepository.observeDisplayCurrency()
+            settingsRepository.observeDisplayCurrency()
         ) { transactions, exchangeRates, currency ->
             val spentByDate = transactions.calculateSpentByDate(
                 exchangeRates = exchangeRates,

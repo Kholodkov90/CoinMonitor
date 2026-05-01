@@ -6,11 +6,28 @@ import androidx.room.OnConflictStrategy.Companion.ABORT
 import androidx.room.Query
 import androidx.room.Upsert
 import com.kholodkov.coinmonitor.data.local.db.entity.user.UserEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface UserDao {
+    @Query(
+        """
+            SELECT usr_display_name 
+            FROM user 
+            WHERE usr_uid = :uid 
+            LIMIT 1
+        """
+    )
+    fun observeDisplayName(uid: String): Flow<String?>
 
-    @Query("SELECT usr_id FROM user WHERE usr_uid = :uid LIMIT 1")
+    @Query(
+        """
+            SELECT usr_id 
+            FROM user 
+            WHERE usr_uid = :uid 
+            LIMIT 1
+        """
+    )
     suspend fun getIdByUid(uid: String): Long?
 
     @Upsert

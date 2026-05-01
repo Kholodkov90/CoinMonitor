@@ -29,7 +29,7 @@ class PurchaseRepositoryImpl @Inject constructor(
     override fun observePlanned() = purchaseDataSource.observePlanned()
 
     override suspend fun addNew(params: NewPurchaseParams) {
-        val currentUser = authDataSource.getCurrentUser() ?: error("User is not logged in")
+        val currentUser = authDataSource.getCurrentUser()
         val userId = userDataSource.getIdByUid(currentUser.uid)
             ?: error("User ${currentUser.uid} doesn't exists")
 
@@ -67,7 +67,7 @@ class PurchaseRepositoryImpl @Inject constructor(
     }
 
     override suspend fun buy(params: EditPurchaseParams) {
-        val currentUser = authDataSource.getCurrentUser() ?: error("User is not logged in")
+        val currentUser = authDataSource.getCurrentUser()
         val userId = userDataSource.getIdByUid(currentUser.uid)
             ?: error("User ${currentUser.uid} doesn't exists")
         val dayId = dayDataSource.getOrCreateDayId(params.date)

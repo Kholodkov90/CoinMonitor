@@ -7,8 +7,8 @@ import com.kholodkov.coinmonitor.domain.model.purchase.PurchaseProjection
 import com.kholodkov.coinmonitor.domain.model.purchase.PurchaseStatus
 import com.kholodkov.coinmonitor.domain.model.purchase.toProjection
 import com.kholodkov.coinmonitor.domain.repository.ExchangeRepository
-import com.kholodkov.coinmonitor.domain.repository.PreferencesRepository
 import com.kholodkov.coinmonitor.domain.repository.PurchaseRepository
+import com.kholodkov.coinmonitor.domain.repository.SettingsRepository
 import com.kholodkov.coinmonitor.domain.repository.TransactionRepository
 import com.kholodkov.coinmonitor.domain.tools.calculateBudget
 import com.kholodkov.coinmonitor.domain.tools.calculateSpentByDate
@@ -23,14 +23,14 @@ class ObservePurchasesUseCase @Inject constructor(
     private val purchaseRepository: PurchaseRepository,
     private val transactionRepository: TransactionRepository,
     private val exchangeRepository: ExchangeRepository,
-    private val preferencesRepository: PreferencesRepository
+    private val settingsRepository: SettingsRepository
 ) {
 
     operator fun invoke(): Flow<List<PurchaseProjection>> = combine(
         purchaseRepository.observeAll(),
         transactionRepository.observeAll(),
         exchangeRepository.observeExchangeRates(),
-        preferencesRepository.observeDisplayCurrency()
+        settingsRepository.observeDisplayCurrency()
     ) { purchases, transactions, exchangeRates, currency ->
         val spentByDate = transactions.calculateSpentByDate(
             exchangeRates = exchangeRates,
