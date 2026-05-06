@@ -1,17 +1,20 @@
 package com.kholodkov.coinmonitor.feature.main.screen
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -19,23 +22,28 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.kholodkov.coinmonitor.core.ui.DateSelectorDialog
-import com.kholodkov.coinmonitor.core.ui.InfoRow
+import com.kholodkov.coinmonitor.R
 import com.kholodkov.coinmonitor.feature.main.MainViewModel
-import com.kholodkov.coinmonitor.feature.main.model.TransactionItem
+import com.kholodkov.coinmonitor.feature.main.model.ui.BudgetState
+import com.kholodkov.coinmonitor.feature.main.model.ui.DayState
+import com.kholodkov.coinmonitor.feature.main.model.ui.TransactionItem
 import com.kholodkov.coinmonitor.feature.main.state.MainUiEvent
 import com.kholodkov.coinmonitor.feature.main.state.MainUiIntent
 import com.kholodkov.coinmonitor.feature.main.state.MainUiState
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 @Composable
 fun MainScreenRoute(
@@ -47,21 +55,27 @@ fun MainScreenRoute(
     MainScreen(
         uiState = uiState,
         snackbarHostState = snackbarHostState,
-        sendIntent = { viewModel.onIntent(it) }
+        onIntent = { viewModel.onIntent(it) }
     )
 
+    val expenseDeletedMessage = stringResource(R.string.expense_deleted)
+    val undoMessage = stringResource(R.string.undo)
+
     LaunchedEffect(Unit) {
+        var snackbarJob: Job? = null
         viewModel.events.collect { event ->
             when (event) {
                 is MainUiEvent.ShowRestoreTransactionSnackbar -> {
-                    snackbarHostState.currentSnackbarData?.dismiss()
-                    val result = snackbarHostState.showSnackbar(
-                        message = "Транзакция удалена",
-                        actionLabel = "Отмена",
-                        duration = SnackbarDuration.Short
-                    )
-                    if (result == SnackbarResult.ActionPerformed) {
-                        viewModel.onIntent(MainUiIntent.RestoreTransaction(event.params))
+                    snackbarJob?.cancel()
+                    snackbarJob = launch {
+                        val result = snackbarHostState.showSnackbar(
+                            message = expenseDeletedMessage,
+                            actionLabel = undoMessage,
+                            duration = SnackbarDuration.Short
+                        )
+                        if (result == SnackbarResult.ActionPerformed) {
+                            viewModel.onIntent(MainUiIntent.Item.Restore(event.params))
+                        }
                     }
                 }
             }
@@ -70,139 +84,139 @@ fun MainScreenRoute(
 }
 
 @Composable
-fun MainScreen(
+private fun MainScreen(
     uiState: MainUiState,
     snackbarHostState: SnackbarHostState,
-    sendIntent: (MainUiIntent) -> Unit
+    onIntent: (MainUiIntent) -> Unit
 ) {
-    var showDatePicker by remember { mutableStateOf(false) }
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(onClick = {
-                sendIntent(MainUiIntent.AddNewTransaction)
+                onIntent(MainUiIntent.Item.AddNew)
             }) {
-                Icon(Icons.Filled.Add, contentDescription = "")
+                Icon(
+                    imageVector = Icons.Filled.Add,
+                    contentDescription = stringResource(R.string.add_expense)
+                )
             }
         },
         contentWindowInsets = WindowInsets()
     ) { innerPadding ->
-        if (showDatePicker) {
-            DateSelectorDialog(
-                onDateSelected = { date -> sendIntent(MainUiIntent.SelectDate(date)) },
-                onDismiss = { showDatePicker = false }
-            )
-        }
-
-        if (uiState.isTransactionSheetVisible) {
-            TransactionSheet(
-                uid = uiState.editTransactionUid,
-                amount = uiState.inputAmount,
-                currency = uiState.inputCurrency,
-                time = uiState.inputTime,
-                isTimeSelectorOpened = uiState.isTimeSelectorOpened,
-                isSaveAvailable = uiState.isSaveAvailable,
-                onDismiss = { sendIntent(MainUiIntent.HideTransactionSheet) },
-                onEditAmount = { amount -> sendIntent(MainUiIntent.EditAmount(amount)) },
-                onEditCurrency = { currency -> sendIntent(MainUiIntent.EditCurrency(currency)) },
-                onEditTime = { sendIntent(MainUiIntent.EditTime) },
-                onSaveTransaction = { uid -> sendIntent(MainUiIntent.SaveTransaction(uid)) },
-                onDismissTimeSelector = { sendIntent(MainUiIntent.DismissTimeSelector) },
-                onSetTime = { time -> sendIntent(MainUiIntent.SetTime(time)) }
-            )
-        }
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 8.dp)
         ) {
             DateHeader(
-                date = uiState.date,
-                dateDescription = uiState.dateDescription,
-                onCalendarClick = { showDatePicker = true },
-                onPreviousDayClick = { sendIntent(MainUiIntent.PreviousDay) },
-                onNextDayClick = { sendIntent(MainUiIntent.NextDay) }
+                modifier = Modifier.padding(8.dp),
+                dayState = uiState.dayState,
+                onIntent = onIntent
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            InfoRow("Баланс", uiState.balance)
-            Spacer(modifier = Modifier.height(8.dp))
-            InfoRow("Потрачено", uiState.spent)
-            Spacer(modifier = Modifier.height(8.dp))
-            InfoRow("Остаток", uiState.remaining)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Операции")
+            HorizontalDivider()
+            BudgetCard(
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+                    .padding(top = 8.dp),
+                budgetState = uiState.budgetState,
+            )
             TransactionsList(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 8.dp),
                 transactionItems = uiState.transactions,
-                onClick = { uid -> sendIntent(MainUiIntent.EditTransaction(uid)) },
-                onDelete = { uid -> sendIntent(MainUiIntent.DeleteTransaction(uid)) }
+                onIntent = onIntent
+            )
+        }
+
+        uiState.transactionState?.let {
+            TransactionSheet(
+                transactionState = it,
+                onIntent = onIntent
             )
         }
     }
-
 }
 
 @Composable
 private fun TransactionsList(
+    modifier: Modifier,
     transactionItems: List<TransactionItem>,
-    onClick: (String) -> Unit,
-    onDelete: (String) -> Unit
+    onIntent: (MainUiIntent.Item) -> Unit
 ) {
+    val saveableStateHolder = rememberSaveableStateHolder()
+
+    if (transactionItems.isEmpty()) {
+        Box(
+            modifier = modifier,
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = stringResource(R.string.no_expenses_yet),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        return
+    }
+
     LazyColumn(
-        modifier = Modifier.fillMaxSize()
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        contentPadding = PaddingValues(top = 4.dp, bottom = 80.dp)
     ) {
         items(
             items = transactionItems,
             key = { it.uid }
         ) { item ->
-            TransactionCard(
-                item = item,
-                onClick = onClick,
-                onDelete = onDelete
-            )
+            DisposableEffect(Unit) {
+                onDispose { saveableStateHolder.removeState(item.uid) }
+            }
+
+            saveableStateHolder.SaveableStateProvider(key = item.uid) {
+                TransactionCard(
+                    item = item,
+                    onClick = { uid -> onIntent(MainUiIntent.Item.Edit(uid)) },
+                    onSwipe = { uid -> onIntent(MainUiIntent.Item.Delete(uid)) }
+                )
+            }
         }
     }
 }
 
-
 @Preview(showBackground = true)
 @Composable
-fun MainScreenPreview() {
+private fun MainScreenPreview() {
     MainScreen(
         uiState = MainUiState(
-            date = "07.04.2026",
-            dateDescription = "Сегодня",
-            balance = "30231 RSD",
-            spent = "1293 RSD",
-            remaining = "28940 RSD",
+            dayState = DayState(
+                date = "01.01.2026",
+                dateDescriptionRes = null,
+                isDatePickerVisible = false
+            ),
+            budgetState = BudgetState(
+                balance = "27500 RSD",
+                isBalancePositive = true,
+                spent = "2500 RSD",
+                remaining = "25000 RSD",
+                isRemainingPositive = true,
+            ),
             transactions = listOf(
                 TransactionItem(
                     uid = "1",
-                    amount = "-400 RSD",
+                    amount = "400 RSD",
                     time = "09:21",
                     user = "Сережа"
                 ),
                 TransactionItem(
                     uid = "2",
-                    amount = "-287 RSD",
+                    amount = "287 RSD",
                     time = "11:57",
                     user = "Настя"
                 ),
-                TransactionItem(
-                    uid = "3",
-                    amount = "-412 EUR",
-                    time = "14:30",
-                    user = "Сережа"
-                ),
-                TransactionItem(
-                    uid = "4",
-                    amount = "-194 EUR",
-                    time = "16:02",
-                    user = "Сережа"
-                ),
             )
+
         ),
         snackbarHostState = remember { SnackbarHostState() }
     ) { }

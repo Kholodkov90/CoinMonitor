@@ -5,15 +5,15 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import com.kholodkov.coinmonitor.core.navigation.Route
-import com.kholodkov.coinmonitor.feature.login.screen.AuthScreenRoute
+import com.kholodkov.coinmonitor.feature.login.screen.LoginScreenRoute
 
 fun NavGraphBuilder.authGraph(navController: NavHostController) {
     navigation(
         route = Route.AuthGraph.route,
-        startDestination = Route.AuthScreen.route
+        startDestination = Route.LoginScreen.route
     ) {
-        composable(Route.AuthScreen.route) {
-            AuthScreenRoute(
+        composable(Route.LoginScreen.route) {
+            LoginScreenRoute(
                 onLoginSuccess = {
                     navController.navigate(Route.HomeGraph.route) {
                         popUpTo(navController.graph.id) { inclusive = true }

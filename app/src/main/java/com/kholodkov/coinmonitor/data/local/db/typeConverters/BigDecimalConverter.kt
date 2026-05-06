@@ -10,6 +10,6 @@ class BigDecimalConverter {
         .longValueExact()
 
     @TypeConverter
-    fun toBigDecimal(value: Long) = BigDecimal(value)
+    fun toBigDecimal(value: Long): BigDecimal = BigDecimal(value)
         .movePointLeft(2)
 }

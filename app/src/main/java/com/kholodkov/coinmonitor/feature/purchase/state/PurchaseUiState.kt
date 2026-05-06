@@ -1,24 +1,10 @@
 package com.kholodkov.coinmonitor.feature.purchase.state
 
-import com.kholodkov.coinmonitor.core.tools.parseToBigDecimal
-import com.kholodkov.coinmonitor.domain.model.currency.Currency
-import com.kholodkov.coinmonitor.feature.purchase.model.PurchaseItem
-import java.math.BigDecimal
+import com.kholodkov.coinmonitor.feature.purchase.model.ui.PurchaseItem
+import com.kholodkov.coinmonitor.feature.purchase.model.ui.PurchaseState
 
 data class PurchaseUiState(
-    val planedAmount: String = "",
+    val plannedAmount: String = "",
     val purchases: List<PurchaseItem> = listOf(),
-    val isPurchaseSheetVisible: Boolean = false,
-    val inputUid: String? = "",
-    val inputDescription: String = "",
-    val inputAmount: String = "",
-    val inputDate: String = "",
-    val inputCurrency: Currency = Currency.RSD,
-    val isDateSelectorOpened: Boolean = false,
-    val isBuyButtonVisible: Boolean = true,
-) {
-    val isButtonsEnabled: Boolean
-        get() = inputAmount.parseToBigDecimal()?.let { it > BigDecimal.ZERO } == true
-                && inputDescription.isNotBlank()
-}
-
+    val purchaseState: PurchaseState? = null
+)

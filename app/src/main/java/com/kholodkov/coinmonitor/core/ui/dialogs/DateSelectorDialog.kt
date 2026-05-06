@@ -1,4 +1,4 @@
-package com.kholodkov.coinmonitor.core.ui
+package com.kholodkov.coinmonitor.core.ui.dialogs
 
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -6,6 +6,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.kholodkov.coinmonitor.R
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -16,7 +18,6 @@ fun DateSelectorDialog(
     onDismiss: () -> Unit
 ) {
     val datePickerState = rememberDatePickerState()
-
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
@@ -29,12 +30,12 @@ fun DateSelectorDialog(
                 }
                 onDismiss()
             }) {
-                Text("OK")
+                Text(stringResource(R.string.ok))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Отмена")
+                Text(stringResource(R.string.cancel))
             }
         }
     ) {

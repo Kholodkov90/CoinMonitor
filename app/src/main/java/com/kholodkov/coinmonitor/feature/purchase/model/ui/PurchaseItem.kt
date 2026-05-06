@@ -1,4 +1,4 @@
-package com.kholodkov.coinmonitor.feature.purchase.model
+package com.kholodkov.coinmonitor.feature.purchase.model.ui
 
 import com.kholodkov.coinmonitor.domain.model.purchase.PurchaseStatus
 

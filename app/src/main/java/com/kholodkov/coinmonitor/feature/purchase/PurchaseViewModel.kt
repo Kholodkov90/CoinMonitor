@@ -4,21 +4,24 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kholodkov.coinmonitor.core.tools.parseToBigDecimal
 import com.kholodkov.coinmonitor.core.tools.toDisplayString
+import com.kholodkov.coinmonitor.core.tools.toInputString
 import com.kholodkov.coinmonitor.domain.model.currency.Currency
 import com.kholodkov.coinmonitor.domain.model.purchase.EditPurchaseParams
-import com.kholodkov.coinmonitor.domain.model.purchase.PurchaseProjection
 import com.kholodkov.coinmonitor.domain.model.purchase.RestorePurchaseParams
 import com.kholodkov.coinmonitor.domain.model.purchase.SavePurchaseParams
+import com.kholodkov.coinmonitor.domain.usecase.currency.ObserveInputCurrencyUseCase
+import com.kholodkov.coinmonitor.domain.usecase.currency.SetInputCurrencyUseCase
 import com.kholodkov.coinmonitor.domain.usecase.purchase.BuyPurchaseUseCase
 import com.kholodkov.coinmonitor.domain.usecase.purchase.DeletePurchaseUseCase
-import com.kholodkov.coinmonitor.domain.usecase.currency.ObserveInputCurrencyUseCase
-import com.kholodkov.coinmonitor.domain.usecase.purchase.ObservePurchaseTotalAmountUseCase
+import com.kholodkov.coinmonitor.domain.usecase.purchase.ObservePurchaseSummaryUseCase
 import com.kholodkov.coinmonitor.domain.usecase.purchase.ObservePurchasesUseCase
 import com.kholodkov.coinmonitor.domain.usecase.purchase.RestorePurchaseUseCase
 import com.kholodkov.coinmonitor.domain.usecase.purchase.SavePurchaseUseCase
-import com.kholodkov.coinmonitor.domain.usecase.currency.SetInputCurrencyUseCase
-import com.kholodkov.coinmonitor.feature.purchase.mapper.toItemList
+import com.kholodkov.coinmonitor.feature.purchase.mapper.toPurchaseItemList
+import com.kholodkov.coinmonitor.feature.purchase.mapper.toPurchaseState
 import com.kholodkov.coinmonitor.feature.purchase.mapper.toRestorePurchaseParams
+import com.kholodkov.coinmonitor.feature.purchase.model.raw.MainData
+import com.kholodkov.coinmonitor.feature.purchase.model.raw.PurchaseData
 import com.kholodkov.coinmonitor.feature.purchase.state.PurchaseUiEvent
 import com.kholodkov.coinmonitor.feature.purchase.state.PurchaseUiIntent
 import com.kholodkov.coinmonitor.feature.purchase.state.PurchaseUiState
@@ -32,13 +35,12 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.math.BigDecimal
 import java.time.LocalDate
 import javax.inject.Inject
 
 @HiltViewModel
 class PurchaseViewModel @Inject constructor(
-    observePurchaseTotalAmountUseCase: ObservePurchaseTotalAmountUseCase,
+    observePurchaseSummaryUseCase: ObservePurchaseSummaryUseCase,
     observePurchasesUseCase: ObservePurchasesUseCase,
     observeInputCurrencyUseCase: ObserveInputCurrencyUseCase,
     private val setInputCurrencyUseCase: SetInputCurrencyUseCase,
@@ -48,48 +50,41 @@ class PurchaseViewModel @Inject constructor(
     private val buyPurchaseUseCase: BuyPurchaseUseCase,
 ) : ViewModel() {
 
-    private val inputCurrencyState = observeInputCurrencyUseCase().stateIn(
+    private val inputCurrency = observeInputCurrencyUseCase().stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
         initialValue = Currency.RSD
     )
 
-    val mainState = combine(
-        observePurchaseTotalAmountUseCase(),
+    private val mainData = combine(
+        observePurchaseSummaryUseCase(),
         observePurchasesUseCase()
-    ) { plannedAmount, purchases ->
-        MainInfo(
-            plannedAmount = plannedAmount,
+    ) { summary, purchases ->
+        MainData(
+            plannedAmount = summary.totalAmount,
+            plannedCurrency = summary.currency,
             purchases = purchases
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
-        initialValue = MainInfo()
+        initialValue = MainData()
     )
 
 
-    private val editPurchaseState = MutableStateFlow(EditPurchaseState())
+    private val activePurchase = MutableStateFlow<PurchaseData?>(null)
 
     val uiState: StateFlow<PurchaseUiState> = combine(
-        mainState,
-        editPurchaseState,
-        inputCurrencyState,
+        mainData,
+        activePurchase,
+        inputCurrency,
     ) { mainInfo,
-        editPurchase,
+        purchase,
         currency ->
-        val isBuyButtonVisible = editPurchase.uid != null && editPurchase.transactionUid == null
         PurchaseUiState(
-            planedAmount = mainInfo.plannedAmount.toDisplayString(),
-            purchases = mainInfo.purchases.toItemList(),
-            isPurchaseSheetVisible = editPurchase.isVisible,
-            inputUid = editPurchase.uid,
-            inputDescription = editPurchase.description,
-            inputAmount = editPurchase.amount,
-            inputDate = editPurchase.date.toDisplayString(),
-            inputCurrency = currency,
-            isDateSelectorOpened = editPurchase.isDatePickerVisible,
-            isBuyButtonVisible = isBuyButtonVisible
+            plannedAmount = "${mainInfo.plannedAmount.toDisplayString()} ${mainInfo.plannedCurrency.name}",
+            purchases = mainInfo.purchases.toPurchaseItemList(),
+            purchaseState = purchase?.toPurchaseState(currency)
         )
     }.stateIn(
         scope = viewModelScope,
@@ -101,31 +96,30 @@ class PurchaseViewModel @Inject constructor(
     val events = _events.asSharedFlow()
 
     fun onIntent(intent: PurchaseUiIntent) = when (intent) {
-        //Main intents
-        is PurchaseUiIntent.AddPurchase -> handleAddPurchase()
-        is PurchaseUiIntent.DeletePurchase -> handleDeletePurchase(intent.uid)
-        is PurchaseUiIntent.EditPurchase -> handleEditPurchase(intent.uid)
-        is PurchaseUiIntent.RestorePurchase -> handleRestorePurchase(intent.params)
+        is PurchaseUiIntent.Item.AddNew -> handleAddNewPurchase()
+        is PurchaseUiIntent.Item.Delete -> handleDeletePurchase(intent.uid)
+        is PurchaseUiIntent.Item.Edit -> handleEditPurchase(intent.uid)
+        is PurchaseUiIntent.Item.Restore -> handleRestorePurchase(intent.params)
 
-        //Purchase sheet intents
-        is PurchaseUiIntent.EditAmount -> handleEditAmount(intent.amount)
-        is PurchaseUiIntent.EditDescription -> handleEditDescription(intent.description)
-        is PurchaseUiIntent.EditCurrency -> handleEditCurrency(intent.currency)
-        is PurchaseUiIntent.ShowDatePicker -> handleShowDatePicker()
-        is PurchaseUiIntent.SetDate -> handleSetDate(intent.date)
-        is PurchaseUiIntent.SavePurchase -> handleSavePurchase(intent.uid)
-        is PurchaseUiIntent.BuyPurchase -> handleBuyPurchase(intent.uid)
-        is PurchaseUiIntent.HidePurchaseSheet -> handleHidePurchaseSheet()
-        is PurchaseUiIntent.DismissDateSelector -> handleDismissDateSelector()
+        is PurchaseUiIntent.Sheet.AmountChanged -> handleAmountChanged(intent.amount)
+        is PurchaseUiIntent.Sheet.DescriptionChanged -> handleDescriptionChanged(intent.description)
+        is PurchaseUiIntent.Sheet.CurrencyChanged -> handleCurrencyChanged(intent.currency)
+        is PurchaseUiIntent.Sheet.OpenDatePicker -> handleOpenDatePicker()
+        is PurchaseUiIntent.Sheet.DismissDatePicker -> handleDismissDatePicker()
+        is PurchaseUiIntent.Sheet.SetDate -> handleSetDate(intent.date)
+        is PurchaseUiIntent.Sheet.Save -> handleSavePurchase(intent.uid)
+        is PurchaseUiIntent.Sheet.Buy -> handleBuyPurchase(intent.uid)
+        is PurchaseUiIntent.Sheet.Dismiss -> handleDismissActivePurchase()
     }
 
-    private fun handleAddPurchase() = editPurchaseState.update {
-        it.copy(
-            isVisible = true,
+    //Item intents
+
+    private fun handleAddNewPurchase() {
+        activePurchase.value = PurchaseData(
+            uid = null,
             amount = "",
             description = "",
             date = LocalDate.now(),
-            uid = null,
             transactionUid = null,
             isDatePickerVisible = false
         )
@@ -133,35 +127,30 @@ class PurchaseViewModel @Inject constructor(
 
     private fun handleDeletePurchase(uid: String) {
         viewModelScope.launch {
-            val purchase = mainState.value.purchases.firstOrNull { it.uid == uid }
+            val purchase = mainData.value.purchases.firstOrNull { it.uid == uid }
 
             purchase?.let {
                 deletePurchaseUseCase(purchase.uid)
                 _events.emit(
-                    PurchaseUiEvent.ShowRestorePurchaseSnackbar(
-                        purchase.toRestorePurchaseParams()
-                    )
+                    PurchaseUiEvent.ShowRestorePurchaseSnackbar(purchase.toRestorePurchaseParams())
                 )
             }
         }
     }
 
     private fun handleEditPurchase(uid: String) {
-        mainState.value.purchases.firstOrNull { it.uid == uid }?.let { purchase ->
+        mainData.value.purchases.firstOrNull { it.uid == uid }?.let { purchase ->
             viewModelScope.launch {
                 setInputCurrencyUseCase(purchase.currency)
             }
-            editPurchaseState.update {
-                it.copy(
-                    isVisible = true,
-                    amount = purchase.amount.toDisplayString(),
-                    description = purchase.description,
-                    date = purchase.date,
-                    uid = purchase.uid,
-                    transactionUid = purchase.transactionUid,
-                    isDatePickerVisible = false
-                )
-            }
+            activePurchase.value = PurchaseData(
+                uid = purchase.uid,
+                amount = purchase.amount.toInputString(),
+                description = purchase.description,
+                date = purchase.date,
+                transactionUid = purchase.transactionUid,
+                isDatePickerVisible = false
+            )
         }
     }
 
@@ -169,28 +158,31 @@ class PurchaseViewModel @Inject constructor(
         viewModelScope.launch { restorePurchaseUseCase(params) }
     }
 
-    private fun handleEditAmount(amount: String) = editPurchaseState.update {
-        it.copy(amount = amount.replace(',', '.'))
+
+    //Sheet intents
+
+    private fun handleAmountChanged(amount: String) = activePurchase.update {
+        it?.copy(amount = amount.replace(',', '.'))
     }
 
-    private fun handleEditDescription(description: String) = editPurchaseState.update {
-        it.copy(description = description)
+    private fun handleDescriptionChanged(description: String) = activePurchase.update {
+        it?.copy(description = description)
     }
 
-    private fun handleShowDatePicker() = editPurchaseState.update {
-        it.copy(isDatePickerVisible = true)
+    private fun handleOpenDatePicker() = activePurchase.update {
+        it?.copy(isDatePickerVisible = true)
     }
 
-    private fun handleEditCurrency(currency: Currency) {
+    private fun handleCurrencyChanged(currency: Currency) {
         viewModelScope.launch { setInputCurrencyUseCase(currency) }
     }
 
-    private fun handleSetDate(date: LocalDate) = editPurchaseState.update {
-        it.copy(date = date)
+    private fun handleSetDate(date: LocalDate) = activePurchase.update {
+        it?.copy(date = date)
     }
 
     private fun handleSavePurchase(uid: String?) {
-        val state = editPurchaseState.value
+        val state = activePurchase.value ?: return
         val amount = state.amount.parseToBigDecimal() ?: return
         val date = state.date
         val description = state.description
@@ -201,15 +193,17 @@ class PurchaseViewModel @Inject constructor(
                     uid = uid,
                     date = date,
                     amount = amount,
-                    currency = inputCurrencyState.value,
+                    currency = inputCurrency.value,
                     description = description
                 )
             )
+
+            activePurchase.update { null }
         }
     }
 
     private fun handleBuyPurchase(uid: String) {
-        val state = editPurchaseState.value
+        val state = activePurchase.value ?: return
         val amount = state.amount.parseToBigDecimal() ?: return
         val date = state.date
         val description = state.description
@@ -220,33 +214,20 @@ class PurchaseViewModel @Inject constructor(
                     uid = uid,
                     date = date,
                     amount = amount,
-                    currency = inputCurrencyState.value,
+                    currency = inputCurrency.value,
                     description = description
                 )
             )
+
+            activePurchase.update { null }
         }
     }
 
-    private fun handleHidePurchaseSheet() = editPurchaseState.update {
-        it.copy(isVisible = false)
+    private fun handleDismissActivePurchase() {
+        activePurchase.value = null
     }
 
-    private fun handleDismissDateSelector() = editPurchaseState.update {
-        it.copy(isDatePickerVisible = false)
+    private fun handleDismissDatePicker() = activePurchase.update {
+        it?.copy(isDatePickerVisible = false)
     }
-
-    data class MainInfo(
-        val plannedAmount: BigDecimal = BigDecimal.ZERO,
-        val purchases: List<PurchaseProjection> = listOf()
-    )
-
-    data class EditPurchaseState(
-        val isVisible: Boolean = false,
-        val amount: String = "",
-        val description: String = "",
-        val date: LocalDate = LocalDate.now(),
-        val uid: String? = null,
-        val transactionUid: String? = null,
-        val isDatePickerVisible: Boolean = false
-    )
 }

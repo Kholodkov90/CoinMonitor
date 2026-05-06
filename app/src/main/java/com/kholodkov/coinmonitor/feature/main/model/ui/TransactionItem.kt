@@ -1,4 +1,4 @@
-package com.kholodkov.coinmonitor.feature.main.model
+package com.kholodkov.coinmonitor.feature.main.model.ui
 
 data class TransactionItem(
     val uid: String,

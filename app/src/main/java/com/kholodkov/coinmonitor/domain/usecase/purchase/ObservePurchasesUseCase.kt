@@ -83,7 +83,7 @@ class ObservePurchasesUseCase @Inject constructor(
             .sumOf { it }
 
         val plannedBefore = handledPurchases
-            .filter { it.status !is PurchaseStatus.Completed }
+            .filter { it.status !is PurchaseStatus.Bought }
             .sumOf {
                 exchangeRates.convert(
                     amount = it.amount,
@@ -111,7 +111,7 @@ class ObservePurchasesUseCase @Inject constructor(
         exchangeRates: ExchangeRates,
     ): PurchaseProjection {
         if (purchase.transactionUid != null) {
-            return purchase.toProjection(status = PurchaseStatus.Completed)
+            return purchase.toProjection(status = PurchaseStatus.Bought)
         }
 
         val amountInCurrency = exchangeRates.convert(
@@ -133,7 +133,7 @@ class ObservePurchasesUseCase @Inject constructor(
             val daysToPurchase = purchase.date.toEpochDay() - LocalDate.now().toEpochDay()
             val dailyLimit = (availableAmountToPurchaseDate - amountInCurrency)
                 .divide(daysToPurchase.toBigDecimal(), 2, RoundingMode.HALF_UP)
-            return purchase.toProjection(status = PurchaseStatus.Pending(dailyLimit, currency))
+            return purchase.toProjection(status = PurchaseStatus.Planned(dailyLimit, currency))
         }
 
         val gap = amountInCurrency - availableAmountToPurchaseDate

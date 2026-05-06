@@ -39,26 +39,20 @@ class SettingsViewModel @Inject constructor(
 
     private val isEditNameDialogVisibleState = MutableStateFlow(false)
 
-    val mainInfoState = combine(
+    val uiState: StateFlow<SettingsUiState> = combine(
         observeDisplayNameUseCase(),
         observeDisplayCurrencyUseCase(),
-        observeStartOfWeekUseCase()
-    ) { name, currency, startOfWeek ->
-        MainInfo(
+        observeStartOfWeekUseCase(),
+        isEditNameDialogVisibleState
+    ) { name,
+        currency,
+        startOfWeek,
+        isEditNameDialogVisible ->
+
+        SettingsUiState(
             name = name,
             currency = currency,
-            startOfWeek = startOfWeek
-        )
-    }
-
-    val uiState: StateFlow<SettingsUiState> = combine(
-        mainInfoState,
-        isEditNameDialogVisibleState
-    ) { mainInfo, isEditNameDialogVisible ->
-        SettingsUiState(
-            name = mainInfo.name,
-            currency = mainInfo.currency,
-            startOfWeek = mainInfo.startOfWeek,
+            startOfWeek = startOfWeek,
             isEditNameDialogVisible = isEditNameDialogVisible
         )
     }.stateIn(
@@ -104,10 +98,4 @@ class SettingsViewModel @Inject constructor(
             _events.emit(SettingsUiEvent.Exit)
         }
     }
-
-    data class MainInfo(
-        val name: String = "",
-        val currency: Currency = Currency.RSD,
-        val startOfWeek: DayOfWeek = DayOfWeek.MONDAY,
-    )
 }

@@ -1,6 +1,6 @@
 package com.kholodkov.coinmonitor.feature.statistic.state
 
-import com.kholodkov.coinmonitor.feature.statistic.model.StatisticItem
+import com.kholodkov.coinmonitor.feature.statistic.model.ui.StatisticItem
 
 data class StatisticUiState(
     val weekItems: List<StatisticItem> = listOf(),

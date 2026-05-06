@@ -18,9 +18,10 @@ A family application for tracking expenses with offline support and syncing via 
 - Display name customization
 - Display currency customization
 - Start of week customization (Monday/Sunday)
+- Russian and English language support
+- Light and dark theme support
 
 ### Planned
-- Russian and English language support
 - Multi-module architecture
 - Unit and UI tests
 
@@ -34,6 +35,12 @@ A family application for tracking expenses with offline support and syncing via 
 
 ## Architecture
 Room is the single source of truth. SyncRepository manages two-way synchronization with Firestore via `callbackFlow`. Offline operationsare applied locally and synced on the next connection.
+
+## Screenshots
+
+| Login                      | Expenses | Purchases | Statistics | Settings |
+|----------------------------|----------|-----------|------------|----------|
+| ![](screenshots/login.jpg) | ![](screenshots/expenses.jpg) | ![](screenshots/purchases.jpg) | ![](screenshots/statistics.jpg) | ![](screenshots/settings.jpg) |
 
 ## Getting Started
 1. Clone the repository

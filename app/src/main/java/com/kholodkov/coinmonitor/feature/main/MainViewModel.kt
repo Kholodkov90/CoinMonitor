@@ -4,19 +4,24 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kholodkov.coinmonitor.core.tools.parseToBigDecimal
 import com.kholodkov.coinmonitor.core.tools.toDisplayString
+import com.kholodkov.coinmonitor.core.tools.toInputString
 import com.kholodkov.coinmonitor.domain.model.currency.Currency
 import com.kholodkov.coinmonitor.domain.model.transaction.RestoreTransactionParams
 import com.kholodkov.coinmonitor.domain.model.transaction.SaveTransactionParams
-import com.kholodkov.coinmonitor.domain.model.transaction.Transaction
+import com.kholodkov.coinmonitor.domain.usecase.currency.ObserveInputCurrencyUseCase
+import com.kholodkov.coinmonitor.domain.usecase.currency.SetInputCurrencyUseCase
 import com.kholodkov.coinmonitor.domain.usecase.transaction.DeleteTransactionUseCase
 import com.kholodkov.coinmonitor.domain.usecase.transaction.ObserveDailySummary
-import com.kholodkov.coinmonitor.domain.usecase.currency.ObserveInputCurrencyUseCase
 import com.kholodkov.coinmonitor.domain.usecase.transaction.ObserveTransactionsByDateUseCase
 import com.kholodkov.coinmonitor.domain.usecase.transaction.RestoreTransactionUseCase
 import com.kholodkov.coinmonitor.domain.usecase.transaction.SaveTransactionUseCase
-import com.kholodkov.coinmonitor.domain.usecase.currency.SetInputCurrencyUseCase
-import com.kholodkov.coinmonitor.feature.main.mapper.toItemList
+import com.kholodkov.coinmonitor.feature.main.mapper.toBudgetState
+import com.kholodkov.coinmonitor.feature.main.mapper.toDayState
 import com.kholodkov.coinmonitor.feature.main.mapper.toRestoreTransactionParams
+import com.kholodkov.coinmonitor.feature.main.mapper.toTransactionItemList
+import com.kholodkov.coinmonitor.feature.main.mapper.toTransactionState
+import com.kholodkov.coinmonitor.feature.main.model.raw.MainData
+import com.kholodkov.coinmonitor.feature.main.model.raw.TransactionData
 import com.kholodkov.coinmonitor.feature.main.state.MainUiEvent
 import com.kholodkov.coinmonitor.feature.main.state.MainUiIntent
 import com.kholodkov.coinmonitor.feature.main.state.MainUiState
@@ -32,10 +37,10 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalTime
 import javax.inject.Inject
+
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val observeTransactionsByDate: ObserveTransactionsByDateUseCase,
@@ -49,54 +54,52 @@ class MainViewModel @Inject constructor(
 
     private val selectedDate = MutableStateFlow(LocalDate.now())
 
+    private val isDatePickerVisible = MutableStateFlow(false)
+
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val mainInfoFlow = selectedDate.flatMapLatest { date ->
+    private val mainData = selectedDate.flatMapLatest { date ->
         combine(
             observeTransactionsByDate(date),
-            observeDailySummary(date)
+            observeDailySummary(date),
         ) { transactions, dailySummary ->
-            MainInfo(
+            MainData(
                 date = date,
                 balance = dailySummary.budget,
                 spent = dailySummary.spent,
                 remaining = dailySummary.remaining,
                 currency = dailySummary.currency,
-                transactions = transactions
+                transactions = transactions,
             )
         }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
-        initialValue = MainInfo()
+        initialValue = MainData()
     )
 
-    private val inputCurrencyState = observeInputCurrencyUseCase().stateIn(
+    private val inputCurrency = observeInputCurrencyUseCase().stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
         initialValue = Currency.RSD
     )
 
-    private val editTransactionState = MutableStateFlow(EditTransactionState())
+    private val activeTransaction = MutableStateFlow<TransactionData?>(null)
 
     val uiState: StateFlow<MainUiState> = combine(
-        mainInfoFlow,
-        editTransactionState,
-        inputCurrencyState,
+        mainData,
+        activeTransaction,
+        inputCurrency,
+        isDatePickerVisible
     ) { mainInfo,
-        editTransaction,
-        currency->
+        transaction,
+        currency,
+        isDatePickerVisible ->
+
         MainUiState(
-            date = mainInfo.date.toDisplayString(),
-            balance = "${mainInfo.balance.toDisplayString()} ${mainInfo.currency}",
-            spent = "${mainInfo.spent.toDisplayString()} ${mainInfo.currency}",
-            remaining = "${mainInfo.remaining.toDisplayString()} ${mainInfo.currency}",
-            transactions = mainInfo.transactions.toItemList(),
-            inputCurrency = currency,
-            inputAmount = editTransaction.inputAmount,
-            editTransactionUid = editTransaction.editTransactionUid,
-            inputTime = editTransaction.inputTime,
-            isTransactionSheetVisible = editTransaction.isVisible,
-            isTimeSelectorOpened = editTransaction.isTimePickerVisible
+            dayState = mainInfo.toDayState(isDatePickerVisible),
+            budgetState = mainInfo.toBudgetState(),
+            transactions = mainInfo.transactions.toTransactionItemList(),
+            transactionState = transaction?.toTransactionState(currency)
         )
     }.stateIn(
         scope = viewModelScope,
@@ -108,60 +111,64 @@ class MainViewModel @Inject constructor(
     val events = _events.asSharedFlow()
 
     fun onIntent(intent: MainUiIntent) = when (intent) {
-        // Main intents
-        is MainUiIntent.SelectDate -> handleSelectDate(intent.date)
-        is MainUiIntent.NextDay -> handleNextDay()
-        is MainUiIntent.PreviousDay -> handlePreviousDay()
-        is MainUiIntent.EditTransaction -> handleEditTransaction(intent.uid)
-        is MainUiIntent.DeleteTransaction -> handleDeleteTransaction(intent.uid)
-        is MainUiIntent.RestoreTransaction -> handleRestoreTransaction(intent.params)
-        is MainUiIntent.AddNewTransaction -> handleAddNewTransaction()
+        is MainUiIntent.DayNavigation.PreviousDay -> handlePreviousDay()
+        is MainUiIntent.DayNavigation.NextDay -> handleNextDay()
+        is MainUiIntent.DayNavigation.OpenDatePicker -> handleOpenDatePicker()
+        is MainUiIntent.DayNavigation.DismissDatePicker -> handleDismissDatePicker()
+        is MainUiIntent.DayNavigation.SelectDate -> handleSelectDate(intent.date)
 
-        //Transaction sheet intents
-        is MainUiIntent.HideTransactionSheet -> handleHideTransactionSheet()
-        is MainUiIntent.EditTime -> handleEditTime()
-        is MainUiIntent.SaveTransaction -> handleSaveTransaction(intent.uid)
-        is MainUiIntent.EditAmount -> handleEditAmount(intent.amount)
-        is MainUiIntent.EditCurrency -> handleEditCurrency(intent.currency)
+        is MainUiIntent.Item.AddNew -> handleAddNewTransaction()
+        is MainUiIntent.Item.Edit -> handleEditTransaction(intent.uid)
+        is MainUiIntent.Item.Delete -> handleDeleteTransaction(intent.uid)
+        is MainUiIntent.Item.Restore -> handleRestoreTransaction(intent.params)
 
-        //Time selector intents
-        is MainUiIntent.SetTime -> handleSetTime(intent.time)
-        is MainUiIntent.DismissTimeSelector -> handleDismissTimeSelector()
+        is MainUiIntent.Sheet.AmountChanged -> handleAmountChanged(intent.amount)
+        is MainUiIntent.Sheet.CurrencyChanged -> handleCurrencyChanged(intent.currency)
+        is MainUiIntent.Sheet.OpenTimeSelector -> handleOpenTimeSelector()
+        is MainUiIntent.Sheet.DismissTimeSelector -> handleDismissTimeSelector()
+        is MainUiIntent.Sheet.SetTime -> handleSetTime(intent.time)
+        is MainUiIntent.Sheet.Save -> handleSaveTransaction(intent.uid)
+        is MainUiIntent.Sheet.Dismiss -> handleDismissActiveTransaction()
     }
 
-    // Main intents
+    //DayNavigation intents
     private fun handleSelectDate(date: LocalDate) {
         selectedDate.value = date
     }
 
     private fun handleNextDay() = selectedDate.update { it.plusDays(1) }
 
+    private fun handleOpenDatePicker() = isDatePickerVisible.update { true }
+
+    private fun handleDismissDatePicker() = isDatePickerVisible.update { false }
+
     private fun handlePreviousDay() = selectedDate.update { it.minusDays(1) }
 
+    //Item intents
+
     private fun handleEditTransaction(uid: String) {
-        mainInfoFlow.value.transactions.firstOrNull { it.uid == uid }?.let { transaction ->
+        mainData.value.transactions.firstOrNull { it.uid == uid }?.let { transaction ->
             viewModelScope.launch {
                 setInputCurrencyUseCase(transaction.currency)
             }
-            editTransactionState.update {
-                it.copy(
-                    isVisible = true,
-                    inputAmount = transaction.amount.toDisplayString(),
-                    inputTime = transaction.time.toDisplayString(),
-                    editTransactionUid = uid,
-                    isTimePickerVisible = false
-                )
-            }
+            activeTransaction.value = TransactionData(
+                uid = uid,
+                amount = transaction.amount.toInputString(),
+                time = transaction.time.toDisplayString(),
+                isTimePickerVisible = false
+            )
         }
     }
 
     private fun handleDeleteTransaction(uid: String) {
         viewModelScope.launch {
-            val transaction = mainInfoFlow.value.transactions.firstOrNull { it.uid == uid }
+            val transaction = mainData.value.transactions.firstOrNull { it.uid == uid }
 
             transaction?.let {
                 deleteTransactionUseCase(transaction.uid)
-                _events.emit(MainUiEvent.ShowRestoreTransactionSnackbar(transaction.toRestoreTransactionParams()))
+                _events.emit(
+                    MainUiEvent.ShowRestoreTransactionSnackbar(transaction.toRestoreTransactionParams())
+                )
             }
         }
     }
@@ -170,77 +177,61 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch { restoreTransactionUseCase(params) }
     }
 
-    private fun handleAddNewTransaction() = editTransactionState.update {
-        it.copy(
-            isVisible = true,
-            inputAmount = "",
-            editTransactionUid = null,
-            inputTime = LocalTime.now().toDisplayString(),
+    private fun handleAddNewTransaction() {
+        activeTransaction.value = TransactionData(
+            uid = null,
+            amount = "",
+            time = LocalTime.now().toDisplayString(),
             isTimePickerVisible = false
         )
     }
 
-    //Transaction sheet intents
-    private fun handleHideTransactionSheet() = editTransactionState.update {
-        it.copy(isVisible = false)
+    //Sheet intents
+
+    private fun handleDismissActiveTransaction() {
+        activeTransaction.value = null
     }
 
-    private fun handleEditTime() = editTransactionState.update { it.copy(isTimePickerVisible = true) }
+    private fun handleOpenTimeSelector() = activeTransaction.update {
+        it?.copy(isTimePickerVisible = true)
+    }
 
     private fun handleSaveTransaction(uid: String?) {
-        val amount = editTransactionState.value.inputAmount.parseToBigDecimal() ?: return
+        val state = activeTransaction.value ?: return
+        val amount = state.amount.parseToBigDecimal() ?: return
         val date = selectedDate.value
-        val time = editTransactionState.value.inputTime
         viewModelScope.launch {
             saveTransactionUseCase(
                 SaveTransactionParams(
                     uid = uid,
                     date = date,
                     amount = amount,
-                    currency = inputCurrencyState.value,
-                    time = LocalTime.parse(time)
+                    currency = inputCurrency.value,
+                    time = LocalTime.parse(state.time)
                 )
             )
+
+            activeTransaction.update { null }
         }
     }
 
-    private fun handleEditAmount(amount: String) = editTransactionState.update {
-        it.copy(inputAmount = amount.replace(',', '.'))
+    private fun handleAmountChanged(amount: String) = activeTransaction.update {
+        it?.copy(amount = amount.replace(',', '.'))
     }
 
-    private fun handleEditCurrency(currency: Currency) {
+    private fun handleCurrencyChanged(currency: Currency) {
         viewModelScope.launch {
             setInputCurrencyUseCase(currency)
         }
     }
 
-    //Time selector intents
-    private fun handleSetTime(time: LocalTime) = editTransactionState.update {
-        it.copy(
-            inputTime = time.toDisplayString(),
+    private fun handleSetTime(time: LocalTime) = activeTransaction.update {
+        it?.copy(
+            time = time.toDisplayString(),
             isTimePickerVisible = false
         )
     }
 
     private fun handleDismissTimeSelector() =
-        editTransactionState.update { it.copy(isTimePickerVisible = false) }
-
-    data class MainInfo(
-        val date: LocalDate = LocalDate.now(),
-        val dateDescription: String = "",
-        val balance: BigDecimal = BigDecimal.ZERO,
-        val spent: BigDecimal = BigDecimal.ZERO,
-        val remaining: BigDecimal = BigDecimal.ZERO,
-        val currency: Currency = Currency.RSD,
-        val isDatePickerVisible: Boolean = false,
-        val transactions: List<Transaction> = listOf()
-    )
-
-    data class EditTransactionState(
-        val isVisible: Boolean = false,
-        val inputAmount: String = "",
-        val inputTime: String = LocalTime.now().toDisplayString(),
-        val editTransactionUid: String? = null,
-        val isTimePickerVisible: Boolean = false
-    )
+        activeTransaction.update { it?.copy(isTimePickerVisible = false) }
 }

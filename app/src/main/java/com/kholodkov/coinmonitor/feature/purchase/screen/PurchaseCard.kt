@@ -1,41 +1,50 @@
 package com.kholodkov.coinmonitor.feature.purchase.screen
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.Preview
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Wallet
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxDefaults
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.kholodkov.coinmonitor.core.tools.toDisplayString
+import com.kholodkov.coinmonitor.R
+import com.kholodkov.coinmonitor.core.tools.toDisplayStringFloored
+import com.kholodkov.coinmonitor.core.ui.components.CircleIcon
+import com.kholodkov.coinmonitor.core.ui.theme.LocalExtendedColors
 import com.kholodkov.coinmonitor.domain.model.currency.Currency
 import com.kholodkov.coinmonitor.domain.model.purchase.PurchaseStatus
-import com.kholodkov.coinmonitor.feature.purchase.model.PurchaseItem
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import com.kholodkov.coinmonitor.feature.purchase.model.ui.PurchaseItem
 import java.math.BigDecimal
 
 @Composable
@@ -44,107 +53,248 @@ fun PurchaseCard(
     onClick: (String) -> Unit,
     onSwipe: (String) -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-    val dismissState = rememberSwipeToDismissBoxState(
-        positionalThreshold = SwipeToDismissBoxDefaults.positionalThreshold,
-    )
+    val dismissState = rememberSwipeToDismissBoxState()
+    val stateUiData = item.status.toUiData()
+
     SwipeToDismissBox(
         state = dismissState,
-        onDismiss = {
-            scope.launch {
-                onSwipe(item.uid)
-                //FIXME: After purchase restore, SwipeToDismissBox still has EndToStart state
-                // and immediately removes again. delay + snapTo(Settled) used as a workaround,
-                // but only partially fixes the issue
-                delay(20)
-                dismissState.snapTo(SwipeToDismissBoxValue.Settled)
-            }
-        },
+        onDismiss = { onSwipe(item.uid) },
         backgroundContent = { },
     ) {
         Card(
             modifier = Modifier.fillMaxWidth(),
-            onClick = { onClick(item.uid) }
+            shape = MaterialTheme.shapes.small,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+            )
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(4.dp),
+                    .clickable { onClick(item.uid) }
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    modifier = Modifier
-                        .size(35.dp)
-                        .align(Alignment.CenterVertically),
-                    imageVector = Icons.Default.Preview,
-                    contentDescription = null
+                CircleIcon(
+                    icon = stateUiData.icon,
+                    iconTint = stateUiData.contentColor,
+                    backgroundColor = stateUiData.containerColor
                 )
-                Spacer(modifier = Modifier.width(4.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(item.amount)
-                    Text(item.description)
-                    Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-                        Text(item.date)
-                        Spacer(modifier = Modifier.width(4.dp))
-                        VerticalDivider(
-                            thickness = 1.dp,
-                            color = Color.DarkGray
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(item.user)
-                    }
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = Color.Transparent,
-                        border = BorderStroke(1.dp, Color.DarkGray)
-                    ) {
-                        val statusText = when (item.status) {
-                            PurchaseStatus.Completed -> "Куплено"
-                            PurchaseStatus.Overdue -> "Просрочено"
-                            is PurchaseStatus.Pending -> "Активно"
-                            is PurchaseStatus.Unreachable -> "Невозможно"
-                            is PurchaseStatus.Available -> "Доступно"
-                        }
-                        Text(modifier = Modifier.padding(horizontal = 4.dp), text = statusText)
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    when (val status = item.status) {
-                        is PurchaseStatus.Pending -> {
-                            Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                                    contentDescription = null
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("${status.dailyLimit.toDisplayString()} ${status.currency.name}/день")
-                            }
-                        }
 
-                        is PurchaseStatus.Unreachable -> {
-                            Text("-${status.gap.toDisplayString()} ${status.currency.name}")
-                        }
+                Spacer(modifier = Modifier.width(12.dp))
+                PurchaseCardContent(
+                    modifier = Modifier.weight(1f),
+                    item = item,
+                    amountColor = stateUiData.amountColor
+                )
 
-                        else -> Unit
-                    }
-                }
+                PurchaseCardStatus(
+                    modifier = Modifier.align(Alignment.Top),
+                    item = item,
+                    stateUiData = stateUiData
+                )
             }
         }
     }
 }
 
+@Composable
+private fun PurchaseCardContent(
+    modifier: Modifier = Modifier,
+    item: PurchaseItem,
+    amountColor: Color
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = item.amount,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = amountColor
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(text = item.description)
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+            Text(
+                text = item.date,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            VerticalDivider(
+                modifier = Modifier
+                    .fillMaxHeight(0.6f)
+                    .align(Alignment.CenterVertically),
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            Text(
+                text = item.user,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
+private fun PurchaseCardStatus(
+    modifier: Modifier = Modifier,
+    item: PurchaseItem,
+    stateUiData: StatusUiData
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.End
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.extraSmall,
+            color = stateUiData.containerColor,
+            border = BorderStroke(1.dp, stateUiData.contentColor)
+        ) {
+            Text(
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                text = stateUiData.label,
+                color = stateUiData.contentColor
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        PurchaseCardStatusExtra(
+            item = item,
+            stateUiData = stateUiData
+        )
+    }
+}
+
+@Composable
+private fun PurchaseCardStatusExtra(
+    item: PurchaseItem,
+    stateUiData: StatusUiData
+) {
+    when (val status = item.status) {
+        is PurchaseStatus.Planned -> {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = stateUiData.amountColor
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = stringResource(
+                        R.string.daily_limit,
+                        "${status.dailyLimit.toDisplayStringFloored()} ${status.currency.name}"
+                    ),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = stateUiData.amountColor
+                )
+            }
+        }
+
+        is PurchaseStatus.Unreachable -> {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.TrendingDown,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = stateUiData.amountColor
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "${status.gap.toDisplayStringFloored()} ${status.currency.name}",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = stateUiData.amountColor
+                )
+            }
+        }
+
+        else -> Unit
+    }
+}
+
+@Composable
+private fun PurchaseStatus.toUiData(): StatusUiData {
+    val extendedColors = LocalExtendedColors.current
+
+    return when (this) {
+        PurchaseStatus.Available -> StatusUiData(
+            icon = Icons.Default.Wallet,
+            contentColor = extendedColors.availablePurchaseContent,
+            containerColor = extendedColors.availablePurchaseContainer,
+            label = stringResource(R.string.purchase_available),
+            amountColor = extendedColors.positiveAmount
+        )
+
+        PurchaseStatus.Bought -> StatusUiData(
+            icon = Icons.Outlined.CheckCircle,
+            contentColor = extendedColors.boughtPurchaseContent,
+            containerColor = extendedColors.boughtPurchaseContainer,
+            label = stringResource(R.string.purchase_bought),
+            amountColor = MaterialTheme.colorScheme.onSurface
+        )
+
+        PurchaseStatus.Overdue -> StatusUiData(
+            icon = Icons.Default.Schedule,
+            contentColor = extendedColors.overduePurchaseContent,
+            containerColor = extendedColors.overduePurchaseContainer,
+            label = stringResource(R.string.purchase_overdue),
+            amountColor = extendedColors.negativeAmount
+        )
+
+        is PurchaseStatus.Planned -> StatusUiData(
+            icon = Icons.Default.CalendarMonth,
+            contentColor = extendedColors.plannedPurchaseContent,
+            containerColor = extendedColors.plannedPurchaseContainer,
+            label = stringResource(R.string.purchase_planned),
+            amountColor = MaterialTheme.colorScheme.onSurface
+        )
+
+        is PurchaseStatus.Unreachable -> StatusUiData(
+            icon = Icons.Outlined.Lock,
+            contentColor = extendedColors.unreachablePurchaseContent,
+            containerColor = extendedColors.unreachablePurchaseContainer,
+            label = stringResource(R.string.purchase_unreachable),
+            amountColor = extendedColors.negativeAmount
+        )
+    }
+}
+
+private data class StatusUiData(
+    val icon: ImageVector,
+    val contentColor: Color,
+    val containerColor: Color,
+    val label: String,
+    val amountColor: Color
+)
 
 @Preview(showBackground = true)
 @Composable
-fun PurchaseCardPreview() {
+private fun PurchaseCardPreview() {
     PurchaseCard(
         item = PurchaseItem(
             uid = "1",
-            amount = "13213 rds",
-            description = "оперативкая память",
+            amount = "13 213 RSD",
+            description = "оперативная память",
             user = "Сергей",
-            status = PurchaseStatus.Unreachable(
-                BigDecimal("1001"),
+            status = PurchaseStatus.Planned(
+                BigDecimal("100135.12"),
                 currency = Currency.RSD
             ),
             date = "01.01.2025"

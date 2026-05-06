@@ -6,23 +6,29 @@ import java.time.LocalDate
 import java.time.LocalTime
 
 sealed interface MainUiIntent {
-    // Main intents
-    data class SelectDate(val date: LocalDate) : MainUiIntent
-    data object NextDay : MainUiIntent
-    data object PreviousDay : MainUiIntent
-    data class EditTransaction(val uid: String) : MainUiIntent
-    data class DeleteTransaction(val uid: String) : MainUiIntent
-    data class RestoreTransaction(val params: RestoreTransactionParams) : MainUiIntent
-    data object AddNewTransaction : MainUiIntent
 
-    //Transaction sheet intents
-    data object HideTransactionSheet : MainUiIntent
-    data object EditTime : MainUiIntent
-    data class SaveTransaction(val uid: String?) : MainUiIntent
-    data class EditAmount(val amount: String) : MainUiIntent
-    data class EditCurrency(val currency: Currency) : MainUiIntent
+    sealed interface DayNavigation : MainUiIntent {
+        data object PreviousDay : DayNavigation
+        data object NextDay : DayNavigation
+        data object OpenDatePicker : DayNavigation
+        data object DismissDatePicker : DayNavigation
+        data class SelectDate(val date: LocalDate) : DayNavigation
+    }
 
-    //Time selector intents
-    data class SetTime(val time: LocalTime) : MainUiIntent
-    data object DismissTimeSelector : MainUiIntent
+    sealed interface Item : MainUiIntent {
+        data class Edit(val uid: String) : Item
+        data class Delete(val uid: String) : Item
+        data class Restore(val params: RestoreTransactionParams) : Item
+        data object AddNew : Item
+    }
+
+    sealed interface Sheet : MainUiIntent {
+        data class AmountChanged(val amount: String) : Sheet
+        data class CurrencyChanged(val currency: Currency) : Sheet
+        data object OpenTimeSelector : Sheet
+        data object DismissTimeSelector : Sheet
+        data class SetTime(val time: LocalTime) : Sheet
+        data class Save(val uid: String?) : Sheet
+        data object Dismiss : Sheet
+    }
 }

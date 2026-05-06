@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -30,7 +30,7 @@ fun SettingsScreenRoute(
 
     SettingsScreen(
         uiState = uiState,
-        sendIntent = { viewModel.onIntent(it) }
+        onIntent = { viewModel.onIntent(it) }
     )
 
     LaunchedEffect(Unit) {
@@ -43,53 +43,43 @@ fun SettingsScreenRoute(
 }
 
 @Composable
-fun SettingsScreen(
+private fun SettingsScreen(
     uiState: SettingsUiState,
-    sendIntent: (SettingsUiIntent) -> Unit
+    onIntent: (SettingsUiIntent) -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 8.dp)
     ) {
-        Text("Настройки")
         Spacer(modifier = Modifier.height(8.dp))
         NameCard(
             name = uiState.name,
-            onClick = { sendIntent(SettingsUiIntent.EditName) }
+            onClick = { onIntent(SettingsUiIntent.EditName) }
         )
         Spacer(modifier = Modifier.height(8.dp))
         CurrencyCard(
             selectedCurrency = uiState.currency,
-            onSelect = { currency -> sendIntent(SettingsUiIntent.SelectCurrency(currency)) }
+            onSelect = { currency -> onIntent(SettingsUiIntent.SelectCurrency(currency)) }
         )
         Spacer(modifier = Modifier.height(8.dp))
         StartOfWeekCard(
             selectedDay = uiState.startOfWeek,
-            onDaySelected = { day -> sendIntent(SettingsUiIntent.SelectStartOfWeek(day)) }
+            onDaySelected = { day -> onIntent(SettingsUiIntent.SelectStartOfWeek(day)) }
         )
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(8.dp))
         SignOutCard(
-            onClick = { sendIntent(SettingsUiIntent.SignOut) }
+            onClick = { onIntent(SettingsUiIntent.SignOut) }
         )
 
         if (uiState.isEditNameDialogVisible) {
-            DisplayEditNameDialog(
-                uiState = uiState,
-                sendIntent = sendIntent
+            EditNameDialog(
+                currentName = uiState.name,
+                onDismiss = { onIntent(SettingsUiIntent.HideEditNameDialog) },
+                onConfirm = { name -> onIntent(SettingsUiIntent.SaveName(name)) }
             )
         }
     }
-}
-
-@Composable
-private fun DisplayEditNameDialog(
-    uiState: SettingsUiState,
-    sendIntent: (SettingsUiIntent) -> Unit
-) {
-    EditNameDialog(
-        currentName = uiState.name,
-        onDismiss = { sendIntent(SettingsUiIntent.HideEditNameDialog) },
-        onConfirm = { name -> sendIntent(SettingsUiIntent.SaveName(name)) }
-    )
 }
 
 @Preview(showBackground = true)
@@ -101,6 +91,6 @@ private fun SettingsScreenPreview() {
             currency = Currency.EUR,
             startOfWeek = DayOfWeek.SUNDAY
         ),
-        sendIntent = {}
+        onIntent = {}
     )
 }

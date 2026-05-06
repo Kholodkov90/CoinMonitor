@@ -6,21 +6,21 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,16 +35,17 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.kholodkov.coinmonitor.core.ui.theme.Purple40
-import com.kholodkov.coinmonitor.core.ui.theme.Purple80
+import com.kholodkov.coinmonitor.R
 import java.time.LocalTime
+
+private val timeFieldWidth = 100.dp
+private val timeFieldHeight = 70.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,7 +60,7 @@ fun TimeSelectorDialog(
     var minute by remember { mutableStateOf(minutes) }
 
     AlertDialog(
-        onDismissRequest = { },
+        onDismissRequest = onDismiss,
         confirmButton = {
             TextButton(onClick = {
                 val h = hour.toIntOrNull() ?: 0
@@ -67,24 +68,28 @@ fun TimeSelectorDialog(
 
                 onConfirm(LocalTime.of(h, m))
             }) {
-                Text("OK")
+                Text(stringResource(R.string.ok))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Отмена")
+                Text(stringResource(R.string.cancel))
             }
         },
+        title = {
+            Text(
+                modifier = Modifier.fillMaxWidth(),
+                text = stringResource(R.string.enter_time),
+                textAlign = TextAlign.Center,
+            )
+        },
         text = {
-            Column(Modifier.fillMaxWidth()) {
-                Text("Введите время")
-                Clock(
-                    hour = hour,
-                    minute = minute,
-                    onHourChange = { hour = it },
-                    onMinuteChange = { minute = it }
-                )
-            }
+            Clock(
+                hour = hour,
+                minute = minute,
+                onHourChange = { hour = it },
+                onMinuteChange = { minute = it }
+            )
         }
     )
 }
@@ -100,21 +105,30 @@ private fun Clock(
     val hourFocus = remember { FocusRequester() }
     val minuteFocus = remember { FocusRequester() }
 
+    var moveFocusToMinutes by remember { mutableStateOf(false) }
+
+    LaunchedEffect(moveFocusToMinutes) {
+        if (moveFocusToMinutes) {
+            minuteFocus.requestFocus()
+            moveFocusToMinutes = false
+        }
+    }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        TimerField(
+        TimeField(
             value = hour,
             onValueChange = { newValue ->
                 val intValue = newValue.toIntOrNull()
                 if (intValue == null) {
                     onHourChange("")
-                    return@TimerField
+                    return@TimeField
                 }
 
-                if (intValue > 23) return@TimerField
+                if (intValue > 23) return@TimeField
 
                 val normalized = if (newValue.length > 2) {
                     newValue.removePrefix("0")
@@ -124,7 +138,7 @@ private fun Clock(
                 onHourChange(normalized)
 
                 if (normalized.length >= 2) {
-                    minuteFocus.requestFocus()
+                    moveFocusToMinutes = true
                 }
             },
             keyboardActions = KeyboardActions(
@@ -132,26 +146,26 @@ private fun Clock(
             ),
             focusRequester = hourFocus,
             onBackspaceEmpty = {},
-            onFocusLost = {
-                if (hour.isEmpty()) onHourChange("00")
-                if (hour.length == 1) onHourChange("0${hour}")
+            onFocusLost = { current ->
+                if (current.isEmpty()) onHourChange("00")
+                if (current.length == 1) onHourChange("0${current}")
             }
         )
         Text(
             modifier = Modifier.padding(8.dp),
             text = ":",
-            style = textStyle
+            style = MaterialTheme.typography.displayMedium
         )
-        TimerField(
+        TimeField(
             value = minute,
             onValueChange = { newValue ->
                 val intValue = newValue.toIntOrNull()
                 if (intValue == null) {
                     onMinuteChange("")
-                    return@TimerField
+                    return@TimeField
                 }
 
-                if (intValue > 59) return@TimerField
+                if (intValue > 59) return@TimeField
                 val normalized = if (newValue.length > 2) {
                     newValue.removePrefix("0")
                 } else
@@ -163,36 +177,38 @@ private fun Clock(
             ),
             focusRequester = minuteFocus,
             onBackspaceEmpty = { hourFocus.requestFocus() },
-            onFocusLost = {
-                if (minute.isEmpty()) onMinuteChange("00")
-                if (minute.length == 1) onMinuteChange("0${minute}")
+            onFocusLost = { current ->
+                if (current.isEmpty()) onMinuteChange("00")
+                if (current.length == 1) onMinuteChange("0${current}")
             }
         )
-
     }
 }
 
 @Composable
-private fun TimerField(
+private fun TimeField(
     value: String,
     onValueChange: (String) -> Unit,
     keyboardActions: KeyboardActions,
     focusRequester: FocusRequester,
     onBackspaceEmpty: () -> Unit,
-    onFocusLost: () -> Unit
+    onFocusLost: (String) -> Unit
 ) {
 
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
-    val borderColor = if (isFocused) Purple40 else Color.LightGray
-    val backgroundColor = if (isFocused) Purple80 else Color.Transparent
+    val borderColor = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent
+    val backgroundColor =
+        if (isFocused) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
 
     BasicTextField(
         value = value,
         onValueChange = { onValueChange(it) },
         singleLine = true,
-        textStyle = textStyle,
+        textStyle = MaterialTheme.typography.displayMedium.copy(
+            textAlign = TextAlign.Center
+        ),
         interactionSource = interactionSource,
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Number,
@@ -200,12 +216,12 @@ private fun TimerField(
         ),
         keyboardActions = keyboardActions,
         modifier = Modifier
-            .width(100.dp)
-            .height(70.dp)
+            .width(timeFieldWidth)
+            .height(timeFieldHeight)
             .focusRequester(focusRequester)
             .onFocusChanged { focusState ->
                 if (!focusState.isFocused) {
-                    onFocusLost()
+                    onFocusLost(value)
                 }
             }
             .onKeyEvent {
@@ -220,8 +236,15 @@ private fun TimerField(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(backgroundColor, RoundedCornerShape(8.dp))
-                    .border(2.dp, borderColor, RoundedCornerShape(8.dp)),
+                    .background(
+                        color = backgroundColor,
+                        shape = MaterialTheme.shapes.small
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = borderColor,
+                        shape = MaterialTheme.shapes.small
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 innerTextField()
@@ -230,17 +253,12 @@ private fun TimerField(
     )
 }
 
-private val textStyle: TextStyle
-    get() = TextStyle(
-        fontSize = 42.sp,
-        textAlign = TextAlign.Center
-    )
-
 @Preview(showBackground = true)
 @Composable
-fun TimeSelectorDialogPreview() {
+private fun TimeSelectorDialogPreview() {
     TimeSelectorDialog(
-        "11:23",
-        {}
-    ) { }
+        time = "11:23",
+        onDismiss = {},
+        onConfirm = {}
+    )
 }

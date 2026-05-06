@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -29,14 +30,25 @@ fun RadioOptionRow(
                 onClick = onClick,
                 role = Role.RadioButton
             )
+            .padding(horizontal = 16.dp)
     ) {
+        Text(
+            text = name,
+            modifier = Modifier.weight(1f)
+        )
         RadioButton(
             selected = isSelected,
             onClick = null
         )
-        Text(
-            text = name,
-            modifier = Modifier.padding(start = 12.dp)
-        )
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun RadioOptionRowPreview(){
+    RadioOptionRow(
+        name = "Понедельник",
+        isSelected = true,
+        onClick = {}
+    )
 }

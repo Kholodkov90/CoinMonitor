@@ -3,9 +3,7 @@ package com.kholodkov.coinmonitor.di
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.room.Room
 import com.kholodkov.coinmonitor.data.local.dataStore
-import com.kholodkov.coinmonitor.data.local.db.CoinDb
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

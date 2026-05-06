@@ -1,5 +1,6 @@
 package com.kholodkov.coinmonitor.domain.usecase.purchase
 
+import com.kholodkov.coinmonitor.domain.model.purchase.PurchaseSummary
 import com.kholodkov.coinmonitor.domain.repository.ExchangeRepository
 import com.kholodkov.coinmonitor.domain.repository.PurchaseRepository
 import com.kholodkov.coinmonitor.domain.repository.SettingsRepository
@@ -8,18 +9,18 @@ import kotlinx.coroutines.flow.combine
 import java.math.BigDecimal
 import javax.inject.Inject
 
-class ObservePurchaseTotalAmountUseCase @Inject constructor(
+class ObservePurchaseSummaryUseCase @Inject constructor(
     private val purchaseRepository: PurchaseRepository,
     private val exchangeRepository: ExchangeRepository,
     private val settingsRepository: SettingsRepository
 ) {
-    operator fun invoke(): Flow<BigDecimal> = combine(
+    operator fun invoke(): Flow<PurchaseSummary> = combine(
         purchaseRepository.observePlanned(),
         exchangeRepository.observeExchangeRates(),
         settingsRepository.observeDisplayCurrency()
     ) { purchases, exchangeRates, currency ->
 
-        purchases.fold(BigDecimal.ZERO) { totalAmount, purchase ->
+        val totalAmount = purchases.fold(BigDecimal.ZERO) { totalAmount, purchase ->
             totalAmount.plus(
                 exchangeRates.convert(
                     amount = purchase.amount,
@@ -29,5 +30,10 @@ class ObservePurchaseTotalAmountUseCase @Inject constructor(
                 )
             )
         }
+
+        PurchaseSummary(
+            totalAmount = totalAmount,
+            currency = currency
+        )
     }
 }

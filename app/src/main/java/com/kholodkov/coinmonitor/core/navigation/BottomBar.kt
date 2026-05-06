@@ -1,9 +1,10 @@
 package com.kholodkov.coinmonitor.core.navigation
 
+import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Task
 import androidx.compose.material.icons.filled.Wallet
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -12,9 +13,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.kholodkov.coinmonitor.R
 
 @Composable
 fun BottomBar(navController: NavController) {
@@ -36,21 +39,21 @@ fun BottomBar(navController: NavController) {
                     }
                 },
                 icon = { Icon(item.icon, null) },
-                label = { Text(item.title) }
+                label = { Text(stringResource(item.title)) }
             )
         }
     }
 }
 
 private val bottomBarItems = listOf(
-    BottomBarItem(Route.MainScreen.route, "Main", Icons.Default.Wallet),
-    BottomBarItem(Route.PurchaseScreen.route, "Purchase", Icons.Default.Task),
-    BottomBarItem(Route.StatisticScreen.route, "Statistic", Icons.Default.BarChart),
-    BottomBarItem(Route.SettingsScreen.route, "Settings", Icons.Default.Settings),
+    BottomBarItem(Route.MainScreen.route, R.string.tab_expenses, Icons.Default.Wallet),
+    BottomBarItem(Route.PurchaseScreen.route, R.string.tab_purchases, Icons.Default.Receipt),
+    BottomBarItem(Route.StatisticScreen.route, R.string.tab_statistic, Icons.Default.BarChart),
+    BottomBarItem(Route.SettingsScreen.route, R.string.tab_settings, Icons.Default.Settings),
 )
 
 private data class BottomBarItem(
     val route: String,
-    val title: String,
+    @field:StringRes val title: Int,
     val icon: ImageVector
 )

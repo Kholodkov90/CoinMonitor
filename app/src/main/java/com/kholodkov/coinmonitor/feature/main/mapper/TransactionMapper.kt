@@ -1,12 +1,16 @@
 package com.kholodkov.coinmonitor.feature.main.mapper
 
+import com.kholodkov.coinmonitor.core.tools.parseToBigDecimal
 import com.kholodkov.coinmonitor.core.tools.toDisplayString
+import com.kholodkov.coinmonitor.domain.model.currency.Currency
 import com.kholodkov.coinmonitor.domain.model.transaction.RestoreTransactionParams
 import com.kholodkov.coinmonitor.domain.model.transaction.Transaction
-import com.kholodkov.coinmonitor.feature.main.model.TransactionItem
+import com.kholodkov.coinmonitor.feature.main.model.raw.TransactionData
+import com.kholodkov.coinmonitor.feature.main.model.ui.TransactionItem
+import com.kholodkov.coinmonitor.feature.main.model.ui.TransactionState
+import java.math.BigDecimal
 
-
-fun Transaction.toItem() = TransactionItem(
+fun Transaction.toTransactionItem() = TransactionItem(
     uid = uid,
     amount = "${amount.toDisplayString()} ${currency.name}",
     time = time.toDisplayString(),
@@ -23,4 +27,13 @@ fun Transaction.toRestoreTransactionParams() = RestoreTransactionParams(
     updatedAt = updatedAt
 )
 
-fun List<Transaction>.toItemList() = map { it.toItem() }
+fun TransactionData.toTransactionState(currency: Currency) = TransactionState(
+    uid = uid,
+    amount = amount,
+    currency = currency,
+    time = time,
+    isSaveEnabled = amount.parseToBigDecimal()?.let { it > BigDecimal.ZERO } ?: false,
+    isTimePickerVisible = isTimePickerVisible
+)
+
+fun List<Transaction>.toTransactionItemList() = map { it.toTransactionItem() }

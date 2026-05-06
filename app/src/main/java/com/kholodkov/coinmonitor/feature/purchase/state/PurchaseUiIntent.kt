@@ -5,21 +5,22 @@ import com.kholodkov.coinmonitor.domain.model.purchase.RestorePurchaseParams
 import java.time.LocalDate
 
 sealed interface PurchaseUiIntent {
-    // Main intents
-    data object AddPurchase : PurchaseUiIntent
-    data class EditPurchase(val uid: String) : PurchaseUiIntent
-    data class DeletePurchase(val uid: String) : PurchaseUiIntent
-    data class RestorePurchase(val params: RestorePurchaseParams) : PurchaseUiIntent
+    sealed interface Item : PurchaseUiIntent {
+        data object AddNew : Item
+        data class Edit(val uid: String) : Item
+        data class Delete(val uid: String) : Item
+        data class Restore(val params: RestorePurchaseParams) : Item
+    }
 
-    // Purchase sheet intents
-    data object HidePurchaseSheet : PurchaseUiIntent
-    data class EditAmount(val amount: String) : PurchaseUiIntent
-    data class EditDescription(val description: String) : PurchaseUiIntent
-    data class EditCurrency(val currency: Currency) : PurchaseUiIntent
-    data object ShowDatePicker : PurchaseUiIntent
-    data class SetDate(val date: LocalDate) : PurchaseUiIntent
-    data object DismissDateSelector : PurchaseUiIntent
-    data class SavePurchase(val uid: String?) : PurchaseUiIntent
-    data class BuyPurchase(val uid: String) : PurchaseUiIntent
-
+    sealed interface Sheet : PurchaseUiIntent {
+        data class AmountChanged(val amount: String) : Sheet
+        data class DescriptionChanged(val description: String) : Sheet
+        data class CurrencyChanged(val currency: Currency) : Sheet
+        data object OpenDatePicker : Sheet
+        data object DismissDatePicker : Sheet
+        data class SetDate(val date: LocalDate) : Sheet
+        data class Save(val uid: String?) : Sheet
+        data class Buy(val uid: String) : Sheet
+        data object Dismiss : Sheet
+    }
 }

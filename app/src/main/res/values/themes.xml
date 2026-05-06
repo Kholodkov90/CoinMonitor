@@ -2,4 +2,10 @@
 <resources>
 
     <style name="Theme.CoinMonitor" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.CoinMonitor.SplashScreen" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#FAF0E6</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.CoinMonitor</item>
+    </style>
 </resources>
