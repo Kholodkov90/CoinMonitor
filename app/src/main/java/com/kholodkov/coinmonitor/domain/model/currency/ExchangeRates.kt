@@ -17,10 +17,28 @@ class ExchangeRates(rates: List<ExchangeRate>) {
         date: LocalDate
     ): BigDecimal {
         if (from == to) return amount
-        val rate = getRate(date)
-        if (to == Currency.RSD) return amount.multiply(rate)
-        return amount.divide(rate, 2, RoundingMode.HALF_UP)
+        val inBase = convertToDefault(amount, from, date)
+        return convertFromDefault(inBase, to, date)
+    }
 
+    private fun convertToDefault(
+        amount: BigDecimal,
+        from: Currency,
+        date: LocalDate
+    ): BigDecimal {
+        if (from == DEFAULT_CURRENCY) return amount
+        val rate = getRate(date)
+        return amount.divide(rate, 10, RoundingMode.HALF_UP)
+    }
+
+    private fun convertFromDefault(
+        amount: BigDecimal,
+        to: Currency,
+        date: LocalDate
+    ): BigDecimal {
+        if (to == DEFAULT_CURRENCY) return amount
+        val rate = getRate(date)
+        return amount.multiply(rate)
     }
 
     private fun getRate(date: LocalDate): BigDecimal =
@@ -29,6 +47,7 @@ class ExchangeRates(rates: List<ExchangeRate>) {
             ?: DEFAULT_RATE
 
     companion object {
-        private val DEFAULT_RATE = BigDecimal("117.2")
+        private val DEFAULT_CURRENCY = Currency.EUR
+        private val DEFAULT_RATE = BigDecimal("117.4")
     }
 }

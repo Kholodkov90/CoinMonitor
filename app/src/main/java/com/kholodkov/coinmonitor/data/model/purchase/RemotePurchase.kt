@@ -1,10 +1,12 @@
 package com.kholodkov.coinmonitor.data.model.purchase
 
+import androidx.annotation.Keep
 import com.kholodkov.coinmonitor.domain.model.currency.Currency
 import java.math.BigDecimal
 import java.time.LocalDate
 
-data class RemotePurchase (
+@Keep
+data class RemotePurchase(
     val uid: String,
     val date: LocalDate,
     val userUid: String,

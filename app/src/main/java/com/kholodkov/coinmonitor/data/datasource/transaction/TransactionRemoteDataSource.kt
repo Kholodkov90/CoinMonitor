@@ -1,6 +1,6 @@
 package com.kholodkov.coinmonitor.data.datasource.transaction
 
-import android.util.Log
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.QueryDocumentSnapshot
@@ -63,7 +63,7 @@ class TransactionRemoteDataSource @Inject constructor(
                     DocumentChange.Type.REMOVED -> RemoteTransactionChange.Delete(uid)
                 }
             }.onFailure {
-                Log.e("TransactionRemote", "Parse failed: ${documentChange.document.id}", it)
+                FirebaseCrashlytics.getInstance().recordException(it)
             }.getOrNull()
         }
 

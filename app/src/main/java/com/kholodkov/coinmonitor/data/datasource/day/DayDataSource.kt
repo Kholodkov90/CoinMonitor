@@ -9,7 +9,7 @@ class DayDataSource @Inject constructor(
     private val dayDao: DayDao
 ) {
     suspend fun getOrCreateDayId(date: LocalDate): Long {
-        dayDao.getIdByDate(date)?.let { return it }
-        return dayDao.insert(DayEntity(date = date))
+        dayDao.insert(DayEntity(date = date))
+        return dayDao.getIdByDate(date) ?: error("No date $date after insert")
     }
 }

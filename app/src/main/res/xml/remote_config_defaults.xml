@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<defaultsMap>
+    <entry>
+        <key>daily_limit_amount</key>
+        <value>6000</value>
+    </entry>
+    <entry>
+        <key>daily_limit_currency</key>
+        <value>RSD</value>
+    </entry>
+    <entry>
+        <key>start_date</key>
+        <value>2015-12-01</value>
+    </entry>
+    <entry>
+        <key>initial_balance_amount</key>
+        <value>0</value>
+    </entry>
+</defaultsMap>

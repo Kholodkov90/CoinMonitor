@@ -1,11 +1,13 @@
 package com.kholodkov.coinmonitor.domain.usecase.purchase
 
+import com.kholodkov.coinmonitor.domain.model.config.AppConfig
 import com.kholodkov.coinmonitor.domain.model.currency.Currency
 import com.kholodkov.coinmonitor.domain.model.currency.ExchangeRates
 import com.kholodkov.coinmonitor.domain.model.purchase.Purchase
 import com.kholodkov.coinmonitor.domain.model.purchase.PurchaseProjection
 import com.kholodkov.coinmonitor.domain.model.purchase.PurchaseStatus
 import com.kholodkov.coinmonitor.domain.model.purchase.toProjection
+import com.kholodkov.coinmonitor.domain.repository.AppConfigRepository
 import com.kholodkov.coinmonitor.domain.repository.ExchangeRepository
 import com.kholodkov.coinmonitor.domain.repository.PurchaseRepository
 import com.kholodkov.coinmonitor.domain.repository.SettingsRepository
@@ -23,18 +25,25 @@ class ObservePurchasesUseCase @Inject constructor(
     private val purchaseRepository: PurchaseRepository,
     private val transactionRepository: TransactionRepository,
     private val exchangeRepository: ExchangeRepository,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val appConfigRepository: AppConfigRepository
 ) {
 
     operator fun invoke(): Flow<List<PurchaseProjection>> = combine(
         purchaseRepository.observeAll(),
         transactionRepository.observeAll(),
         exchangeRepository.observeExchangeRates(),
-        settingsRepository.observeDisplayCurrency()
-    ) { purchases, transactions, exchangeRates, currency ->
+        settingsRepository.observeDisplayCurrency(),
+        appConfigRepository.observeConfig()
+    ) { purchases,
+        transactions,
+        exchangeRates,
+        displayCurrency,
+        appConfig ->
+
         val spentByDate = transactions.calculateSpentByDate(
             exchangeRates = exchangeRates,
-            currency = currency
+            targetCurrency = appConfig.dailyLimitCurrency
         )
 
         purchases.fold(emptyList()) { handledPurchases, purchase ->
@@ -42,10 +51,10 @@ class ObservePurchasesUseCase @Inject constructor(
                 if (purchase.date < LocalDate.now()) LocalDate.now() else purchase.date
             val availableAmountToPurchaseDate = calculateAvailableAmount(
                 date = purchaseDate,
-                currency = currency,
                 exchangeRates = exchangeRates,
                 spentByDate = spentByDate,
-                handledPurchases = handledPurchases
+                handledPurchases = handledPurchases,
+                appConfig = appConfig
             )
 
             val availableAmountNow = if (purchaseDate == LocalDate.now()) {
@@ -53,10 +62,10 @@ class ObservePurchasesUseCase @Inject constructor(
             } else {
                 calculateAvailableAmount(
                     date = LocalDate.now(),
-                    currency = currency,
                     exchangeRates = exchangeRates,
                     spentByDate = spentByDate,
-                    handledPurchases = handledPurchases
+                    handledPurchases = handledPurchases,
+                    appConfig = appConfig
                 )
             }
 
@@ -64,19 +73,19 @@ class ObservePurchasesUseCase @Inject constructor(
                 purchase = purchase,
                 availableAmountToPurchaseDate = availableAmountToPurchaseDate,
                 availableAmountNow = availableAmountNow,
-                currency = currency,
+                displayCurrency = displayCurrency,
                 exchangeRates = exchangeRates,
+                appConfig = appConfig
             )
         }
     }
 
-
     private fun calculateAvailableAmount(
         date: LocalDate,
-        currency: Currency,
         exchangeRates: ExchangeRates,
         spentByDate: Map<LocalDate, BigDecimal>,
-        handledPurchases: List<PurchaseProjection>
+        handledPurchases: List<PurchaseProjection>,
+        appConfig: AppConfig
     ): BigDecimal {
         val spentBefore = spentByDate.filter { it.key <= date }
             .values
@@ -84,22 +93,21 @@ class ObservePurchasesUseCase @Inject constructor(
 
         val plannedBefore = handledPurchases
             .filter { it.status !is PurchaseStatus.Bought }
-            .sumOf {
-                exchangeRates.convert(
-                    amount = it.amount,
-                    from = it.currency,
-                    to = currency,
-                    date = it.date
+            .fold(BigDecimal.ZERO) { plannedBefore, purchase ->
+                plannedBefore + exchangeRates.convert(
+                    amount = purchase.amount,
+                    from = purchase.currency,
+                    to = appConfig.dailyLimitCurrency,
+                    date = purchase.date
                 )
             }
 
-        val totalSpent = spentBefore.plus(plannedBefore)
+        val totalSpent = spentBefore + plannedBefore
 
         return calculateBudget(
             date = date,
-            exchangeRates = exchangeRates,
-            currency = currency,
-            totalSpent = totalSpent
+            totalSpent = totalSpent,
+            appConfig = appConfig
         )
     }
 
@@ -107,21 +115,22 @@ class ObservePurchasesUseCase @Inject constructor(
         purchase: Purchase,
         availableAmountToPurchaseDate: BigDecimal,
         availableAmountNow: BigDecimal,
-        currency: Currency,
+        displayCurrency: Currency,
         exchangeRates: ExchangeRates,
+        appConfig: AppConfig
     ): PurchaseProjection {
         if (purchase.transactionUid != null) {
             return purchase.toProjection(status = PurchaseStatus.Bought)
         }
 
-        val amountInCurrency = exchangeRates.convert(
+        val amount = exchangeRates.convert(
             amount = purchase.amount,
             from = purchase.currency,
-            to = currency,
+            to = appConfig.dailyLimitCurrency,
             date = purchase.date
         )
 
-        if (amountInCurrency <= availableAmountNow) {
+        if (amount <= availableAmountNow) {
             return purchase.toProjection(status = PurchaseStatus.Available)
         }
 
@@ -129,15 +138,37 @@ class ObservePurchasesUseCase @Inject constructor(
             return purchase.toProjection(status = PurchaseStatus.Overdue)
         }
 
-        if (amountInCurrency <= availableAmountToPurchaseDate) {
+        if (amount <= availableAmountToPurchaseDate) {
             val daysToPurchase = purchase.date.toEpochDay() - LocalDate.now().toEpochDay()
-            val dailyLimit = (availableAmountToPurchaseDate - amountInCurrency)
-                .divide(daysToPurchase.toBigDecimal(), 2, RoundingMode.HALF_UP)
-            return purchase.toProjection(status = PurchaseStatus.Planned(dailyLimit, currency))
+            val dailyLimit = (availableAmountToPurchaseDate - amount)
+                .divide(daysToPurchase.toBigDecimal(), 10, RoundingMode.HALF_UP)
+                .let {
+                    exchangeRates.convert(
+                        amount = it,
+                        from = appConfig.dailyLimitCurrency,
+                        to = displayCurrency,
+                        date = LocalDate.now()
+                    )
+                }.setScale(2, RoundingMode.HALF_UP)
+            return purchase.toProjection(
+                status = PurchaseStatus.Planned(
+                    dailyLimit,
+                    displayCurrency
+                )
+            )
         }
 
-        val gap = amountInCurrency - availableAmountToPurchaseDate
-        return purchase.toProjection(status = PurchaseStatus.Unreachable(gap, currency))
+        val gap = (amount - availableAmountToPurchaseDate)
+            .let {
+                exchangeRates.convert(
+                    amount = it,
+                    from = appConfig.dailyLimitCurrency,
+                    to = displayCurrency,
+                    date = LocalDate.now()
+                )
+            }.setScale(2, RoundingMode.HALF_UP)
+
+        return purchase.toProjection(status = PurchaseStatus.Unreachable(gap, displayCurrency))
     }
 
 }

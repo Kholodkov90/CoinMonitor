@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.crashlytics)
 }
 
 android {
@@ -23,22 +24,44 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "GOOGLE_CLIENT_ID", "\"${localProperties["GOOGLE_CLIENT_ID"]}\"")
         buildConfigField("String", "EXCHANGE_API_URL", "\"https://api.frankfurter.dev/\"")
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("C:\\Users\\Sergey\\keystores\\coin_key_store")
+            storePassword = localProperties["KEYSTORE_PASSWORD"] as String
+            keyAlias = localProperties["KEY_ALIAS"] as String
+            keyPassword = localProperties["KEY_PASSWORD"] as String
+        }
+    }
+
     buildTypes {
+        debug {
+            buildConfigField(
+                "String",
+                "GOOGLE_CLIENT_ID",
+                "\"${localProperties["GOOGLE_CLIENT_ID_DEBUG"]}\""
+            )
+        }
         release {
+            buildConfigField(
+                "String",
+                "GOOGLE_CLIENT_ID",
+                "\"${localProperties["GOOGLE_CLIENT_ID_RELEASE"]}\""
+            )
+            isDebuggable = true
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -93,6 +116,8 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
+    implementation(libs.firebase.config)
+    implementation(libs.firebase.crashlytics)
 
     //Network
     implementation(libs.okhttp)

@@ -1,7 +1,6 @@
 # CoinMonitor
 
 A family application for tracking expenses with offline support and syncing via Firebase.
-> ⚠️ Work in progress — not production ready.
 
 ## Features
 
@@ -29,9 +28,11 @@ A family application for tracking expenses with offline support and syncing via 
 - Kotlin, Jetpack Compose, Jetpack Navigation
 - Clean Architecture (data / domain / presentation)
 - MVI (UiState + Intent)
-- Room (single source of truth), Firebase Firestore (sync), Firebase Auth
+- Room (single source of truth), Firebase Firestore (sync), Firebase Auth, Firebase Remote Config
+- WorkManager
 - Hilt, Coroutines + Flow
 - Retrofit2 + OkHttp (exchange rates via [Frankfurter API](https://api.frankfurter.dev))
+- Firebase Crashlytics
 
 ## Architecture
 Room is the single source of truth. SyncRepository manages two-way synchronization with Firestore via `callbackFlow`. Offline operationsare applied locally and synced on the next connection.
@@ -44,6 +45,6 @@ Room is the single source of truth. SyncRepository manages two-way synchronizati
 
 ## Getting Started
 1. Clone the repository
-2. Add `google-services.json` to `/app`
+2. Add `google-services.json` to `/app/src/debug/` and `/app/src/release/`
 3. Open in Android Studio (latest stable recommended)
 4. Run on an emulator or device (minSdk 26)

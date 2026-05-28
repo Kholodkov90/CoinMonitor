@@ -4,6 +4,7 @@ import androidx.credentials.GetCredentialResponse
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.kholodkov.coinmonitor.domain.usecase.auth.SignInUseCase
 import com.kholodkov.coinmonitor.feature.login.state.LoginUiEvent
 import com.kholodkov.coinmonitor.feature.login.state.LoginUiIntent
@@ -47,6 +48,7 @@ class LoginViewModel @Inject constructor(
                     _events.emit(LoginUiEvent.EnterApp)
                 },
                 onFailure = {
+                    FirebaseCrashlytics.getInstance().recordException(it)
                     _uiState.value = LoginUiState.Error
                 }
             )
@@ -59,6 +61,7 @@ class LoginViewModel @Inject constructor(
         if (exception is GetCredentialCancellationException) {
             _uiState.update { LoginUiState.Idle }
         } else {
+            FirebaseCrashlytics.getInstance().recordException(exception)
             _uiState.update { LoginUiState.Error }
         }
     }

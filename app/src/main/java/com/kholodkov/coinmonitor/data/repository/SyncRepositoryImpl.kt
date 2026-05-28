@@ -4,18 +4,18 @@ import com.google.gson.Gson
 import com.kholodkov.coinmonitor.data.datasource.day.DayDataSource
 import com.kholodkov.coinmonitor.data.datasource.exchange.ExchangeDataSource
 import com.kholodkov.coinmonitor.data.datasource.orphaned.OrphanedDataSource
+import com.kholodkov.coinmonitor.data.datasource.orphaned.OrphanedType
 import com.kholodkov.coinmonitor.data.datasource.purchase.PurchaseDataSource
 import com.kholodkov.coinmonitor.data.datasource.transaction.TransactionDataSource
 import com.kholodkov.coinmonitor.data.datasource.user.UserDataSource
 import com.kholodkov.coinmonitor.data.mapper.toResolved
-import com.kholodkov.coinmonitor.domain.model.currency.ExchangeRate
+import com.kholodkov.coinmonitor.data.model.exchange.NewExchangeRate
 import com.kholodkov.coinmonitor.data.model.orphaned.Orphaned
 import com.kholodkov.coinmonitor.data.model.purchase.RemotePurchase
 import com.kholodkov.coinmonitor.data.model.purchase.RemotePurchaseChange
 import com.kholodkov.coinmonitor.data.model.transaction.RemoteTransaction
 import com.kholodkov.coinmonitor.data.model.transaction.RemoteTransactionChange
-import com.kholodkov.coinmonitor.data.datasource.orphaned.OrphanedType
-import com.kholodkov.coinmonitor.data.model.exchange.NewExchangeRate
+import com.kholodkov.coinmonitor.domain.model.currency.ExchangeRate
 import com.kholodkov.coinmonitor.domain.model.user.User
 import com.kholodkov.coinmonitor.domain.repository.SyncRepository
 import com.kholodkov.coinmonitor.domain.scheduler.LoadExchangeRateScheduler
@@ -83,16 +83,17 @@ class SyncRepositoryImpl @Inject constructor(
         }
     }
 
-    private suspend fun syncExchangeRates(exchangeRates: List<ExchangeRate>) = exchangeRates.forEach { exchangeRate ->
-        val dayId = dayDataSource.getOrCreateDayId(exchangeRate.date)
-        exchangeDataSource.addFromRemote(
-            NewExchangeRate(
-                dayId = dayId,
-                currency = exchangeRate.currency,
-                rate = exchangeRate.exchangeRate
+    private suspend fun syncExchangeRates(exchangeRates: List<ExchangeRate>) =
+        exchangeRates.forEach { exchangeRate ->
+            val dayId = dayDataSource.getOrCreateDayId(exchangeRate.date)
+            exchangeDataSource.addFromRemote(
+                NewExchangeRate(
+                    dayId = dayId,
+                    currency = exchangeRate.currency,
+                    rate = exchangeRate.exchangeRate
+                )
             )
-        )
-    }
+        }
 
     private suspend fun syncTransactions(changes: List<RemoteTransactionChange>) =
         changes.forEach { change ->
@@ -141,11 +142,13 @@ class SyncRepositoryImpl @Inject constructor(
         }
 
         val dayId = dayDataSource.getOrCreateDayId(purchase.date)
-        purchaseDataSource.resolve(purchase.toResolved(
-            dayId = dayId,
-            userId = userId,
-            transactionId = transactionId
-        ))
+        purchaseDataSource.resolve(
+            purchase.toResolved(
+                dayId = dayId,
+                userId = userId,
+                transactionId = transactionId
+            )
+        )
     }
 
     private suspend fun <T> addToOrphaned(type: OrphanedType, model: T) {

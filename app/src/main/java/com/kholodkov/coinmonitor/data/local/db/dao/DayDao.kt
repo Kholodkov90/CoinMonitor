@@ -2,7 +2,7 @@ package com.kholodkov.coinmonitor.data.local.db.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
-import androidx.room.OnConflictStrategy.Companion.ABORT
+import androidx.room.OnConflictStrategy.Companion.IGNORE
 import androidx.room.Query
 import com.kholodkov.coinmonitor.data.local.db.entity.day.DayEntity
 import java.time.LocalDate
@@ -20,6 +20,6 @@ interface DayDao {
     )
     suspend fun getIdByDate(date: LocalDate): Long?
 
-    @Insert(onConflict = ABORT)
+    @Insert(onConflict = IGNORE)
     suspend fun insert(day: DayEntity): Long
 }

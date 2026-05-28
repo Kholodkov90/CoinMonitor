@@ -1,7 +1,6 @@
 package com.kholodkov.coinmonitor.data.datasource.user
 
-
-import android.util.Log
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.QueryDocumentSnapshot
 import com.google.firebase.firestore.QuerySnapshot
@@ -39,7 +38,7 @@ class UserRemoteDataSource @Inject constructor(
                 val uid = document.uid
                 document.toObject(FirestoreUser::class.java).toUser(uid)
             }.onFailure {
-                Log.e("UserRemote", "Parse failed: ${documentChange.document.id}", it)
+                FirebaseCrashlytics.getInstance().recordException(it)
             }.getOrNull()
         }
 

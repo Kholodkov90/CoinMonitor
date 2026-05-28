@@ -18,14 +18,14 @@ class ObservePurchaseSummaryUseCase @Inject constructor(
         purchaseRepository.observePlanned(),
         exchangeRepository.observeExchangeRates(),
         settingsRepository.observeDisplayCurrency()
-    ) { purchases, exchangeRates, currency ->
+    ) { purchases, exchangeRates, displayCurrency ->
 
         val totalAmount = purchases.fold(BigDecimal.ZERO) { totalAmount, purchase ->
             totalAmount.plus(
                 exchangeRates.convert(
                     amount = purchase.amount,
                     from = purchase.currency,
-                    to = currency,
+                    to = displayCurrency,
                     date = purchase.date
                 )
             )
@@ -33,7 +33,7 @@ class ObservePurchaseSummaryUseCase @Inject constructor(
 
         PurchaseSummary(
             totalAmount = totalAmount,
-            currency = currency
+            currency = displayCurrency
         )
     }
 }

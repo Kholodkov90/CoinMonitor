@@ -30,28 +30,28 @@ class ObserveStatisticSummaryUseCase @Inject constructor(
         exchangeRepository.observeExchangeRates(),
         settingsRepository.observeDisplayCurrency(),
         settingsRepository.observeStartOfWeek()
-    ) { transactions, exchangeRates, currency, startOfWeek ->
+    ) { transactions, exchangeRates, displayCurrency, startOfWeek ->
         StatisticSummary(
-            currency = currency,
+            currency = displayCurrency,
             weeklyStats = transactions.groupByWeek(
                 exchangeRates = exchangeRates,
-                currency = currency,
+                displayCurrency = displayCurrency,
                 startOfWeek = startOfWeek
             ),
             monthlyStats = transactions.groupByMonth(
                 exchangeRates = exchangeRates,
-                currency = currency
+                displayCurrency = displayCurrency
             ),
             yearlyStats = transactions.groupByYear(
                 exchangeRates = exchangeRates,
-                currency = currency
+                displayCurrency = displayCurrency
             )
         )
     }
 
     private fun List<Transaction>.groupByWeek(
         exchangeRates: ExchangeRates,
-        currency: Currency,
+        displayCurrency: Currency,
         startOfWeek: DayOfWeek
     ): List<WeekStats> {
         if (isEmpty()) return emptyList()
@@ -72,22 +72,29 @@ class ObserveStatisticSummaryUseCase @Inject constructor(
 
                 val totalSpent = weekTransactions.calculateSpentByDate(
                     exchangeRates = exchangeRates,
-                    currency = currency
-                ).values.sumOf { it }
+                    targetCurrency = displayCurrency
+                )
+                    .values
+                    .sumOf { it }
 
                 val daysInWeek = when (startDay) {
+                    firstStartOfWeek if startDay == lastStartOfWeek -> ChronoUnit.DAYS.between(
+                        firstDate,
+                        LocalDate.now()
+                    ) + 1
+
                     firstStartOfWeek -> ChronoUnit.DAYS.between(firstDate, startDay.plusDays(7))
                     lastStartOfWeek -> ChronoUnit.DAYS.between(startDay, LocalDate.now()) + 1
+
                     else -> 7L
                 }
-
                 val average = totalSpent.divide(daysInWeek.toBigDecimal(), 2, RoundingMode.HALF_UP)
 
                 WeekStats(
                     dateFrom = startDay,
                     dateTo = startDay.plusDays(6),
                     transactionCount = weekTransactions.size,
-                    totalSpent = totalSpent,
+                    totalSpent = totalSpent.setScale(2, RoundingMode.HALF_UP),
                     average = average
                 )
             }
@@ -97,7 +104,7 @@ class ObserveStatisticSummaryUseCase @Inject constructor(
 
     private fun List<Transaction>.groupByMonth(
         exchangeRates: ExchangeRates,
-        currency: Currency
+        displayCurrency: Currency
     ): List<MonthStats> {
         if (isEmpty()) return emptyList()
 
@@ -114,10 +121,15 @@ class ObserveStatisticSummaryUseCase @Inject constructor(
 
                 val totalSpent = monthTransactions.calculateSpentByDate(
                     exchangeRates = exchangeRates,
-                    currency = currency
+                    targetCurrency = displayCurrency
                 ).values.sumOf { it }
 
                 val daysInMonth = when (monthStart) {
+                    firstMonth if monthStart == lastMonth -> ChronoUnit.DAYS.between(
+                        firstDate,
+                        LocalDate.now()
+                    ) + 1
+
                     firstMonth -> ChronoUnit.DAYS.between(firstDate, monthStart.plusMonths(1))
                     lastMonth -> ChronoUnit.DAYS.between(monthStart, LocalDate.now()) + 1
                     else -> monthStart.lengthOfMonth().toLong()
@@ -128,7 +140,7 @@ class ObserveStatisticSummaryUseCase @Inject constructor(
                 MonthStats(
                     monthStart = monthStart,
                     transactionCount = monthTransactions.size,
-                    totalSpent = totalSpent,
+                    totalSpent = totalSpent.setScale(2, RoundingMode.HALF_UP),
                     average = average
                 )
             }
@@ -138,7 +150,7 @@ class ObserveStatisticSummaryUseCase @Inject constructor(
 
     private fun List<Transaction>.groupByYear(
         exchangeRates: ExchangeRates,
-        currency: Currency
+        displayCurrency: Currency
     ): List<YearStats> {
         if (isEmpty()) return emptyList()
 
@@ -155,10 +167,15 @@ class ObserveStatisticSummaryUseCase @Inject constructor(
 
                 val totalSpent = yearTransactions.calculateSpentByDate(
                     exchangeRates = exchangeRates,
-                    currency = currency
+                    targetCurrency = displayCurrency
                 ).values.sumOf { it }
 
                 val daysInYear = when (yearStart) {
+                    firstYearStart if yearStart == lastYearStart -> ChronoUnit.DAYS.between(
+                        firstDate,
+                        LocalDate.now()
+                    ) + 1
+
                     firstYearStart -> ChronoUnit.DAYS.between(firstDate, yearStart.plusYears(1))
                     lastYearStart -> ChronoUnit.DAYS.between(yearStart, LocalDate.now()) + 1
                     else -> if (yearStart.isLeapYear) 366L else 365L
@@ -167,7 +184,7 @@ class ObserveStatisticSummaryUseCase @Inject constructor(
                 YearStats(
                     year = yearStart.year,
                     transactionCount = yearTransactions.size,
-                    totalSpent = totalSpent,
+                    totalSpent = totalSpent.setScale(2, RoundingMode.HALF_UP),
                     average = totalSpent.divide(daysInYear.toBigDecimal(), 2, RoundingMode.HALF_UP)
                 )
             }

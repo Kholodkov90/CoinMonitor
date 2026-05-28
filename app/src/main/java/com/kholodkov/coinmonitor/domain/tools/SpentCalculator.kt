@@ -6,7 +6,7 @@ import com.kholodkov.coinmonitor.domain.model.transaction.Transaction
 
 fun List<Transaction>.calculateSpentByDate(
     exchangeRates: ExchangeRates,
-    currency: Currency
+    targetCurrency: Currency
 ) = groupBy { it.date }
     .mapValues { (date, dayTransactions) ->
         dayTransactions
@@ -16,7 +16,7 @@ fun List<Transaction>.calculateSpentByDate(
                 exchangeRates.convert(
                     amount = totalAmount,
                     from = transactionCurrency,
-                    to = currency,
+                    to = targetCurrency,
                     date = date
                 )
             }

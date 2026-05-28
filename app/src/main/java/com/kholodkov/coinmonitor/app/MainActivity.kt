@@ -21,15 +21,16 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         splashScreen.setKeepOnScreenCondition {
-            viewModel.isLoggedIn.value == null
+            !viewModel.isAppReady.value
         }
 
         setContent {
-            val isLoggedIn by viewModel
-                .isLoggedIn
-                .collectAsStateWithLifecycle()
+            val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle()
+            val isAppReady by viewModel.isAppReady.collectAsStateWithLifecycle()
 
-            isLoggedIn?.let { AppRoot(it) }
+            if (isAppReady) {
+                isLoggedIn?.let { AppRoot(it) }
+            }
         }
     }
 
