@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tab_week">Неделя</string>
+    <string name="tab_month">Месяц</string>
+    <string name="tab_year">Год</string>
+    <string name="total_spent">Потрачено</string>
+    <string name="expense_count">Количество операций</string>
+    <string name="daily_average">В среднем в день</string>
+    <string name="period">Период</string>
+</resources>

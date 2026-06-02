@@ -5,7 +5,7 @@
 
     <style name="Theme.CoinMonitor.SplashScreen" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">#FAF0E6</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_login_logo</item>
         <item name="postSplashScreenTheme">@style/Theme.CoinMonitor</item>
     </style>
 </resources>

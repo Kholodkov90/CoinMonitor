@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tab_week">Week</string>
+    <string name="tab_month">Month</string>
+    <string name="tab_year">Year</string>
+    <string name="total_spent">Spent</string>
+    <string name="expense_count">Number of expenses</string>
+    <string name="daily_average">Daily average</string>
+    <string name="period">Period</string>
+</resources>

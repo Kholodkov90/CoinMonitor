@@ -2,6 +2,7 @@ package com.kholodkov.coinmonitor.app
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.kholodkov.coinmonitor.domain.usecase.auth.ObserveIsLoggedInUseCase
 import com.kholodkov.coinmonitor.domain.usecase.config.FetchConfigUseCase
 import com.kholodkov.coinmonitor.domain.usecase.sync.SyncUseCase
@@ -50,8 +51,13 @@ class AppViewModel @Inject constructor(
 
     private fun fetchConfig() {
         viewModelScope.launch {
-            fetchConfigUseCase()
-            _isConfigReady.value = true
+            try {
+                fetchConfigUseCase()
+            } catch (e: Exception) {
+                FirebaseCrashlytics.getInstance().recordException(e)
+            } finally {
+                _isConfigReady.value = true
+            }
         }
     }
 

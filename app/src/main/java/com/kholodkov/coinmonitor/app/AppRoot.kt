@@ -6,20 +6,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.kholodkov.coinmonitor.core.navigation.BottomBar
-import com.kholodkov.coinmonitor.core.navigation.Route
-import com.kholodkov.coinmonitor.core.navigation.graph.authGraph
-import com.kholodkov.coinmonitor.core.navigation.graph.homeGraph
+import com.kholodkov.coinmonitor.app.navigation.AppGraph
+import com.kholodkov.coinmonitor.app.navigation.AppNavHost
+import com.kholodkov.coinmonitor.app.navigation.BottomBar
 import com.kholodkov.coinmonitor.core.ui.theme.CoinMonitorTheme
 
 @Composable
 fun AppRoot(isLoggedIn: Boolean) {
-    val startDestination =
-        if (isLoggedIn) Route.HomeGraph.route
-        else Route.AuthGraph.route
+    val startDestination = if (isLoggedIn) AppGraph.HOME else AppGraph.AUTH
 
     CoinMonitorTheme {
         val navController = rememberNavController()
@@ -28,19 +24,16 @@ fun AppRoot(isLoggedIn: Boolean) {
         val isBottomBarVisible = navBackStackEntry
             ?.destination
             ?.hierarchy
-            ?.any { it.route == Route.HomeGraph.route } == true
+            ?.any { it.route == AppGraph.HOME } == true
 
         Scaffold(
             bottomBar = { if (isBottomBarVisible) BottomBar(navController) }
         ) { padding ->
-            NavHost(
+            AppNavHost(
                 navController = navController,
                 startDestination = startDestination,
                 modifier = Modifier.padding(padding)
-            ) {
-                authGraph(navController)
-                homeGraph(navController)
-            }
+            )
         }
     }
 }

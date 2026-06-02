@@ -1,0 +1,17 @@
+package com.kholodkov.coinmonitor.data.di
+
+import com.kholodkov.coinmonitor.data.local.tools.UidGenerator
+import dagger.Binds
+import dagger.Module
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
+
+@Suppress("unused")
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class ToolsModule {
+    @Binds
+    @Singleton
+    abstract fun bindUidGenerator(uidGenerator: UidGenerator.Base): UidGenerator
+}

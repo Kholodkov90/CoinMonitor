@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="common_app_name" translatable="false">Coin Monitor</string>
+    <string name="common_error_title">Error</string>
+    <string name="common_ok">OK</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_amount">Amount</string>
+    <string name="common_enter_amount">Enter amount</string>
+    <string name="common_undo">Undo</string>
+    <string name="common_save">Save</string>
+</resources>

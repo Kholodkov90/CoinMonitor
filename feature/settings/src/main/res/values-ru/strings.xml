@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="name">Имя</string>
+    <string name="edit_name">Изменить имя</string>
+    <string name="enter_name">Введите имя</string>
+    <string name="currency">Валюта</string>
+    <string name="select_currency">Выберите валюту</string>
+    <string name="start_of_week">Начало недели</string>
+    <string name="select_day">Выберите день</string>
+    <string name="sign_out">Выход</string>
+    <string name="sign_out_subtitle">Выйти из профиля</string>
+</resources>

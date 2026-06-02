@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="common_error_title">Ошибка</string>
+    <string name="common_ok">OK</string>
+    <string name="common_cancel">Отмена</string>
+    <string name="common_amount">Сумма</string>
+    <string name="common_enter_amount">Введите сумму</string>
+    <string name="common_undo">Отменить</string>
+    <string name="common_save">Сохранить</string>
+</resources>

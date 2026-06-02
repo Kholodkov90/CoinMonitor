@@ -19,9 +19,9 @@ A family application for tracking expenses with offline support and syncing via 
 - Start of week customization (Monday/Sunday)
 - Russian and English language support
 - Light and dark theme support
+- Multi-module architecture
 
 ### Planned
-- Multi-module architecture
 - Unit and UI tests
 
 ## Tech Stack

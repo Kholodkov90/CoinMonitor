@@ -24,4 +24,13 @@ dependencyResolutionManagement {
 
 rootProject.name = "Coin Monitor"
 include(":app")
- 
+include(":core:common")
+include(":domain")
+include(":data")
+include(":core:ui")
+include(":feature:login")
+include(":feature:main")
+include(":feature:purchase")
+include(":feature:settings")
+include(":feature:statistic")
+include(":core:platform")

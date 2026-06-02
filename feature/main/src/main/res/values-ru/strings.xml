@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="date_today">сегодня</string>
+    <string name="date_yesterday">вчера</string>
+    <string name="date_tomorrow">завтра</string>
+    <string name="balance">Баланс</string>
+    <string name="spent">Потрачено</string>
+    <string name="remaining">Остаток</string>
+    <string name="previous_day">Предыдущий день</string>
+    <string name="next_day">Следующий день</string>
+    <string name="new_expense">Новая трата</string>
+    <string name="add_expense">Добавить трату</string>
+    <string name="edit_expense">Редактировать трату</string>
+    <string name="expense_deleted">Расход удалён</string>
+    <string name="no_expenses_yet">Расходов пока нет</string>
+    <string name="enter_time">Введите время</string>
+</resources>

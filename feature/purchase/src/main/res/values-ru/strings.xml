@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="planned_amount">Запланировано</string>
+    <string name="daily_limit">%1$s/д</string>
+    <string name="purchase_available">доступно</string>
+    <string name="purchase_bought">куплено</string>
+    <string name="purchase_overdue">просрочено</string>
+    <string name="purchase_planned">в плане</string>
+    <string name="purchase_unreachable">невозможно</string>
+    <string name="purchase_deleted">Покупка удалена</string>
+    <string name="add_purchase">Добавить планируемую покупку</string>
+    <string name="new_purchase">Новая покупка</string>
+    <string name="edit_purchase">Редактировать покупку</string>
+    <string name="no_planned_purchases_yet">Запланированных покупок пока нет</string>
+    <string name="description">Описание</string>
+    <string name="enter_description">Введите описание</string>
+    <string name="buy">Купить</string>
+</resources>

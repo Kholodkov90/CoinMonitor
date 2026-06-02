@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="planned_amount">Planned amount</string>
+    <string name="daily_limit">%1$s/d</string>
+    <string name="purchase_available">available</string>
+    <string name="purchase_bought">bought</string>
+    <string name="purchase_overdue">overdue</string>
+    <string name="purchase_planned">planned</string>
+    <string name="purchase_unreachable">unreachable</string>
+    <string name="purchase_deleted">Purchase deleted</string>
+    <string name="add_purchase">Add planned purchase</string>
+    <string name="new_purchase">New purchase</string>
+    <string name="edit_purchase">Edit purchase</string>
+    <string name="no_planned_purchases_yet">No planned purchases yet</string>
+    <string name="description">Description</string>
+    <string name="enter_description">Enter description</string>
+    <string name="buy">Buy</string>
+</resources>

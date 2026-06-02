@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="date_today">today</string>
+    <string name="date_yesterday">yesterday</string>
+    <string name="date_tomorrow">tomorrow</string>
+    <string name="balance">Balance</string>
+    <string name="spent">Spent</string>
+    <string name="remaining">Remaining</string>
+    <string name="previous_day">Previous day</string>
+    <string name="next_day">Next day</string>
+    <string name="new_expense">New expense</string>
+    <string name="add_expense">Add expense</string>
+    <string name="edit_expense">Edit expense</string>
+    <string name="expense_deleted">Expense deleted</string>
+    <string name="no_expenses_yet">No expenses yet</string>
+    <string name="enter_time">Enter time</string>
+</resources>
