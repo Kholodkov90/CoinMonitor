@@ -14,6 +14,7 @@ import com.kholodkov.coinmonitor.domain.tools.calculateSpentByDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.math.RoundingMode
+import java.time.Clock
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -23,7 +24,8 @@ import javax.inject.Inject
 class ObserveStatisticSummaryUseCase @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val exchangeRepository: ExchangeRepository,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val clock: Clock = Clock.systemDefaultZone()
 ) {
     operator fun invoke(): Flow<StatisticSummary> = combine(
         transactionRepository.observeAll(),
@@ -31,20 +33,26 @@ class ObserveStatisticSummaryUseCase @Inject constructor(
         settingsRepository.observeDisplayCurrency(),
         settingsRepository.observeStartOfWeek()
     ) { transactions, exchangeRates, displayCurrency, startOfWeek ->
+
+        val today = LocalDate.now(clock)
+
         StatisticSummary(
             currency = displayCurrency,
             weeklyStats = transactions.groupByWeek(
                 exchangeRates = exchangeRates,
                 displayCurrency = displayCurrency,
-                startOfWeek = startOfWeek
+                startOfWeek = startOfWeek,
+                today = today
             ),
             monthlyStats = transactions.groupByMonth(
                 exchangeRates = exchangeRates,
-                displayCurrency = displayCurrency
+                displayCurrency = displayCurrency,
+                today = today
             ),
             yearlyStats = transactions.groupByYear(
                 exchangeRates = exchangeRates,
-                displayCurrency = displayCurrency
+                displayCurrency = displayCurrency,
+                today = today
             )
         )
     }
@@ -52,14 +60,15 @@ class ObserveStatisticSummaryUseCase @Inject constructor(
     private fun List<Transaction>.groupByWeek(
         exchangeRates: ExchangeRates,
         displayCurrency: Currency,
-        startOfWeek: DayOfWeek
+        startOfWeek: DayOfWeek,
+        today: LocalDate
     ): List<WeekStats> {
         if (isEmpty()) return emptyList()
 
         val weekFields = WeekFields.of(startOfWeek, 1)
         val firstDate = minOf { it.date }
         val firstStartOfWeek = firstDate.with(weekFields.dayOfWeek(), 1L)
-        val lastStartOfWeek = LocalDate.now().with(weekFields.dayOfWeek(), 1L)
+        val lastStartOfWeek = today.with(weekFields.dayOfWeek(), 1L)
 
         val transactionsByWeek = groupBy {
             it.date.with(weekFields.dayOfWeek(), 1L)
@@ -80,11 +89,11 @@ class ObserveStatisticSummaryUseCase @Inject constructor(
                 val daysInWeek = when (startDay) {
                     firstStartOfWeek if startDay == lastStartOfWeek -> ChronoUnit.DAYS.between(
                         firstDate,
-                        LocalDate.now()
+                        today
                     ) + 1
 
                     firstStartOfWeek -> ChronoUnit.DAYS.between(firstDate, startDay.plusDays(7))
-                    lastStartOfWeek -> ChronoUnit.DAYS.between(startDay, LocalDate.now()) + 1
+                    lastStartOfWeek -> ChronoUnit.DAYS.between(startDay, today) + 1
 
                     else -> 7L
                 }
@@ -104,13 +113,14 @@ class ObserveStatisticSummaryUseCase @Inject constructor(
 
     private fun List<Transaction>.groupByMonth(
         exchangeRates: ExchangeRates,
-        displayCurrency: Currency
+        displayCurrency: Currency,
+        today: LocalDate
     ): List<MonthStats> {
         if (isEmpty()) return emptyList()
 
         val firstDate = minOf { it.date }
         val firstMonth = firstDate.withDayOfMonth(1)
-        val lastMonth = LocalDate.now().withDayOfMonth(1)
+        val lastMonth = today.withDayOfMonth(1)
 
         val transactionsByMonth = groupBy { it.date.withDayOfMonth(1) }
 
@@ -127,11 +137,11 @@ class ObserveStatisticSummaryUseCase @Inject constructor(
                 val daysInMonth = when (monthStart) {
                     firstMonth if monthStart == lastMonth -> ChronoUnit.DAYS.between(
                         firstDate,
-                        LocalDate.now()
+                        today
                     ) + 1
 
                     firstMonth -> ChronoUnit.DAYS.between(firstDate, monthStart.plusMonths(1))
-                    lastMonth -> ChronoUnit.DAYS.between(monthStart, LocalDate.now()) + 1
+                    lastMonth -> ChronoUnit.DAYS.between(monthStart, today) + 1
                     else -> monthStart.lengthOfMonth().toLong()
                 }
 
@@ -150,13 +160,14 @@ class ObserveStatisticSummaryUseCase @Inject constructor(
 
     private fun List<Transaction>.groupByYear(
         exchangeRates: ExchangeRates,
-        displayCurrency: Currency
+        displayCurrency: Currency,
+        today: LocalDate
     ): List<YearStats> {
         if (isEmpty()) return emptyList()
 
         val firstDate = minOf { it.date }
         val firstYearStart = firstDate.withDayOfYear(1)
-        val lastYearStart = LocalDate.now().withDayOfYear(1)
+        val lastYearStart = today.withDayOfYear(1)
 
         val transactionsByYear = groupBy { it.date.withDayOfYear(1) }
 
@@ -173,11 +184,11 @@ class ObserveStatisticSummaryUseCase @Inject constructor(
                 val daysInYear = when (yearStart) {
                     firstYearStart if yearStart == lastYearStart -> ChronoUnit.DAYS.between(
                         firstDate,
-                        LocalDate.now()
+                        today
                     ) + 1
 
                     firstYearStart -> ChronoUnit.DAYS.between(firstDate, yearStart.plusYears(1))
-                    lastYearStart -> ChronoUnit.DAYS.between(yearStart, LocalDate.now()) + 1
+                    lastYearStart -> ChronoUnit.DAYS.between(yearStart, today) + 1
                     else -> if (yearStart.isLeapYear) 366L else 365L
                 }
 

@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.time.Clock
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -26,7 +27,8 @@ class ObservePurchasesUseCase @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val exchangeRepository: ExchangeRepository,
     private val settingsRepository: SettingsRepository,
-    private val appConfigRepository: AppConfigRepository
+    private val appConfigRepository: AppConfigRepository,
+    private val clock: Clock = Clock.systemDefaultZone()
 ) {
 
     operator fun invoke(): Flow<List<PurchaseProjection>> = combine(
@@ -41,14 +43,16 @@ class ObservePurchasesUseCase @Inject constructor(
         displayCurrency,
         appConfig ->
 
+        val today = LocalDate.now(clock)
+
         val spentByDate = transactions.calculateSpentByDate(
             exchangeRates = exchangeRates,
             targetCurrency = appConfig.dailyLimitCurrency
         )
 
         purchases.fold(emptyList()) { handledPurchases, purchase ->
-            val purchaseDate =
-                if (purchase.date < LocalDate.now()) LocalDate.now() else purchase.date
+            val purchaseDate = if (purchase.date < today) today else purchase.date
+
             val availableAmountToPurchaseDate = calculateAvailableAmount(
                 date = purchaseDate,
                 exchangeRates = exchangeRates,
@@ -57,11 +61,11 @@ class ObservePurchasesUseCase @Inject constructor(
                 appConfig = appConfig
             )
 
-            val availableAmountNow = if (purchaseDate == LocalDate.now()) {
+            val availableAmountNow = if (purchaseDate == today) {
                 availableAmountToPurchaseDate
             } else {
                 calculateAvailableAmount(
-                    date = LocalDate.now(),
+                    date = today,
                     exchangeRates = exchangeRates,
                     spentByDate = spentByDate,
                     handledPurchases = handledPurchases,
@@ -75,7 +79,8 @@ class ObservePurchasesUseCase @Inject constructor(
                 availableAmountNow = availableAmountNow,
                 displayCurrency = displayCurrency,
                 exchangeRates = exchangeRates,
-                appConfig = appConfig
+                appConfig = appConfig,
+                today = today
             )
         }
     }
@@ -117,7 +122,8 @@ class ObservePurchasesUseCase @Inject constructor(
         availableAmountNow: BigDecimal,
         displayCurrency: Currency,
         exchangeRates: ExchangeRates,
-        appConfig: AppConfig
+        appConfig: AppConfig,
+        today: LocalDate
     ): PurchaseProjection {
         if (purchase.transactionUid != null) {
             return purchase.toProjection(status = PurchaseStatus.Bought)
@@ -134,12 +140,12 @@ class ObservePurchasesUseCase @Inject constructor(
             return purchase.toProjection(status = PurchaseStatus.Available)
         }
 
-        if (purchase.date < LocalDate.now()) {
+        if (purchase.date < today) {
             return purchase.toProjection(status = PurchaseStatus.Overdue)
         }
 
         if (amount <= availableAmountToPurchaseDate) {
-            val daysToPurchase = purchase.date.toEpochDay() - LocalDate.now().toEpochDay()
+            val daysToPurchase = purchase.date.toEpochDay() - today.toEpochDay()
             val dailyLimit = (availableAmountToPurchaseDate - amount)
                 .divide(daysToPurchase.toBigDecimal(), 10, RoundingMode.HALF_UP)
                 .let {
@@ -147,7 +153,7 @@ class ObservePurchasesUseCase @Inject constructor(
                         amount = it,
                         from = appConfig.dailyLimitCurrency,
                         to = displayCurrency,
-                        date = LocalDate.now()
+                        date = today
                     )
                 }.setScale(2, RoundingMode.HALF_UP)
             return purchase.toProjection(
@@ -164,7 +170,7 @@ class ObservePurchasesUseCase @Inject constructor(
                     amount = it,
                     from = appConfig.dailyLimitCurrency,
                     to = displayCurrency,
-                    date = LocalDate.now()
+                    date = today
                 )
             }.setScale(2, RoundingMode.HALF_UP)
 
