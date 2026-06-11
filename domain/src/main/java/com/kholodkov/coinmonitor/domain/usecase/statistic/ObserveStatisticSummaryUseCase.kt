@@ -25,7 +25,7 @@ class ObserveStatisticSummaryUseCase @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val exchangeRepository: ExchangeRepository,
     private val settingsRepository: SettingsRepository,
-    private val clock: Clock = Clock.systemDefaultZone()
+    private val clock: Clock
 ) {
     operator fun invoke(): Flow<StatisticSummary> = combine(
         transactionRepository.observeAll(),

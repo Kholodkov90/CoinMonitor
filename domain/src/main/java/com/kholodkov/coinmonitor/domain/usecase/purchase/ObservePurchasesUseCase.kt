@@ -28,7 +28,7 @@ class ObservePurchasesUseCase @Inject constructor(
     private val exchangeRepository: ExchangeRepository,
     private val settingsRepository: SettingsRepository,
     private val appConfigRepository: AppConfigRepository,
-    private val clock: Clock = Clock.systemDefaultZone()
+    private val clock: Clock
 ) {
 
     operator fun invoke(): Flow<List<PurchaseProjection>> = combine(
